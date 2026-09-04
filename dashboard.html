@@ -68,8 +68,9 @@
     }
     .animate-marquee-slow {
       display: inline-flex;
+      width: max-content;
       white-space: nowrap;
-      animation: marquee 35s linear infinite;
+      animation: marquee 15s linear infinite;
     }
     .animate-marquee-slow:hover {
       animation-play-state: paused;
@@ -214,7 +215,7 @@
               <span>Distribución Municipal</span>
             </div>
             <div class="overflow-hidden whitespace-nowrap relative flex-1">
-              <div id="municipalTickerContent" class="animate-marquee-slow flex space-x-6 text-xs font-medium text-slate-300">
+              <div id="municipalTickerContent" class="animate-marquee-slow text-xs font-medium text-slate-300">
                 <!-- Se poblará dinámicamente con chips de municipios -->
               </div>
             </div>
@@ -783,12 +784,12 @@
       
       // Duplicar elementos para efecto infinito de marquesina
       const createItems = () => {
-        return sortedMun.map(([mun, cnt]) => `
+        return `<div class="ticker-group inline-flex items-center gap-6 flex-shrink-0 pr-6">${sortedMun.map(([mun, cnt]) => `
           <div class="inline-flex items-center space-x-1.5 bg-slate-800/80 px-2.5 py-1 rounded-full border border-slate-700/60">
             <span class="font-bold text-slate-100">${mun}:</span>
             <span class="text-emerald-400 font-extrabold">${cnt} ${cnt === 1 ? 'empresa' : 'empresas'}</span>
           </div>
-        `).join('');
+        `).join('')}</div>`;
       };
 
       tickerContent.innerHTML = createItems() + createItems();
