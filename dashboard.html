@@ -109,7 +109,7 @@
     
     <!-- BARRA LATERAL -->
     <aside id="sidebar" class="w-64 flex-shrink-0 transition-all duration-300">
-      <div class="glass-card rounded-xl p-3 shadow-sm sticky top-28 border border-slate-200">
+      <div class="glass-card rounded-xl p-3 shadow-sm sticky top-28 max-h-[calc(100vh-8rem)] overflow-y-auto custom-scrollbar border border-slate-200">
         
         <div class="flex items-center justify-between mb-3 px-2">
           <h2 class="sidebar-header-text text-xs font-bold text-slate-400 uppercase tracking-wider">Navegación & Filtros</h2>
@@ -162,7 +162,7 @@
           <div class="pt-4 pb-1 sidebar-header-text">
             <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-2">Módulos Temáticos</p>
           </div>
-          <div class="space-y-1 custom-scrollbar max-h-[calc(100vh-390px)] overflow-y-auto pr-1" id="moduleNavList">
+          <div class="space-y-1 pr-1" id="moduleNavList">
           </div>
         </nav>
       </div>
@@ -482,7 +482,8 @@
     ]);
     
     const TABLE_ONLY_QUESTIONS = new Set([
-      "Acciones con entidades aliadas"
+      "Acciones con entidades aliadas",
+      "Acciones de desarrollo comunitario con entidad diferente a CEO"
     ]);
     
     const DEPENDENT_QUESTIONS = {
@@ -497,71 +498,71 @@
     };
 
     const MODULE_MAPPING = {
-      "Áreas organizacionales": "SISTEMAS DE GESTIÓN",
-      "Políticas de sostenibilidad": "SISTEMAS DE GESTIÓN",
-      "Análisis de materialidad": "PLANIFICACIÓN ESTRATÉGICA",
-      "Riesgos y oportunidades ambientales": "PLANIFICACIÓN ESTRATÉGICA",
-      "Grupos de interés en la estrategia": "PLANIFICACIÓN ESTRATÉGICA",
-      "Indicadores de sostenibilidad": "PLANIFICACIÓN ESTRATÉGICA",
-      "Sistema de Gestión Ambiental": "SISTEMAS DE GESTIÓN",
-      "Informe de sostenibilidad": "PLANIFICACIÓN ESTRATÉGICA",
-      "Formación interna en sostenibilidad": "EDUCACIÓN Y EMPLEABILIDAD",
-      "Adhesión al ACV": "RECONOCIMIENTOS REGIONALES",
-      "Categoría actual en el ACV": "RECONOCIMIENTOS REGIONALES",
-      "Participación en Líderes Progresa": "RECONOCIMIENTOS REGIONALES",
-      "Categoría en Líderes Progresa": "RECONOCIMIENTOS REGIONALES",
-      "Medición de Huella de Carbono": "CAMBIO CLIMÁTICO",
-      "Inversión en Economía Circular": "SIMBIOSIS EMPRESARIAL",
-      "Economía Circular en la estrategia": "SIMBIOSIS EMPRESARIAL",
-      "Relación con la comunidad": "RESPONSABILIDAD SOCIAL",
-      "Caracterización del área de influencia": "RESPONSABILIDAD SOCIAL",
-      "Alineación de la responsabilidad social": "RESPONSABILIDAD SOCIAL",
-      "Estrategia social en territorio": "RESPONSABILIDAD SOCIAL",
-      "Definición de acciones sociales": "RESPONSABILIDAD SOCIAL",
-      "Acciones con entidades aliadas": "RESPONSABILIDAD SOCIAL",
-      "Presupuesto ambiental y social": "SISTEMAS DE GESTIÓN",
-      "Presupuesto gestión ambiental": "SECCIÓN FINANCIERA",
-      "Presupuesto gestión social": "SECCIÓN FINANCIERA",
-      "Inversión social últimos 5 años": "RESPONSABILIDAD SOCIAL",
-      "Proyectos colaborativos con la comunidad": "RESPONSABILIDAD SOCIAL",
-      "Objetivos de sostenibilidad y ODS": "PLANIFICACIÓN ESTRATÉGICA",
-      "Rendición de cuentas a grupos de interés": "PLANIFICACIÓN ESTRATÉGICA",
-      "Seguimiento directivo a la sostenibilidad": "PLANIFICACIÓN ESTRATÉGICA",
-      "Sostenibilidad comunicada a clientes": "PLANIFICACIÓN ESTRATÉGICA",
-      "Sostenibilidad en compras, ventas y contratación": "PLANIFICACIÓN ESTRATÉGICA",
-      "Sostenibilidad en la cadena de valor": "PLANIFICACIÓN ESTRATÉGICA",
-      "Cambio climático en la estrategia": "CAMBIO CLIMÁTICO",
-      "Acciones de adaptación y mitigación climática": "CAMBIO CLIMÁTICO",
-      "Reconocimiento del área de influencia": "DESARROLLO TERRITORIAL",
-      "Inversiones con beneficios tributarios": "SISTEMAS DE GESTIÓN",
-      "Conocimiento de Obras por Impuestos": "DESARROLLO TERRITORIAL",
-      "Participación en construcción colectiva regional": "DESARROLLO TERRITORIAL",
-      "Conocimiento de la Estrategia de Ecodesarrollo": "DESARROLLO TERRITORIAL",
-      "Revisión de instrumentos de ordenamiento territorial": "DESARROLLO TERRITORIAL",
-      "Prospectiva territorial en inversiones": "DESARROLLO TERRITORIAL",
-      "Innovación, investigación y desarrollo": "INNOVACIÓN",
-      "Metodología para nuevos productos y servicios": "INNOVACIÓN",
-      "Retos para la continuidad del negocio": "INNOVACIÓN",
-      "Gestión de riesgos con actores externos": "GESTIÓN DE RIESGOS",
-      "Plan de continuidad del negocio": "GESTIÓN DE RIESGOS",
-      "Formación interna del talento": "EDUCACIÓN Y EMPLEABILIDAD",
-      "Formación externa del talento": "EDUCACIÓN Y EMPLEABILIDAD",
-      "Atracción de talento": "EDUCACIÓN Y EMPLEABILIDAD",
-      "Formación en liderazgo": "EDUCACIÓN Y EMPLEABILIDAD",
-      "Beneficios y bienestar laboral": "EDUCACIÓN Y EMPLEABILIDAD",
-      "Certificaciones empresariales": "SISTEMAS DE GESTIÓN",
-      "Municipio": "DESARROLLO TERRITORIAL",
-      "Ventas totales 2025": "SECCIÓN FINANCIERA",
-      "Exportaciones": "SECCIÓN FINANCIERA",
-      "Participación de exportaciones en ventas": "SECCIÓN FINANCIERA",
-      "Países de exportación": "SECCIÓN FINANCIERA",
-      "Principales mercados de exportación": "SECCIÓN FINANCIERA",
-      "Presupuesto para CTi": "INNOVACIÓN",
-      "Inversión presupuestada en CTi": "INNOVACIÓN",
-      "Ingresos superiores a 33.610 UVT": "SECCIÓN FINANCIERA",
-      "Impuesto de renta aproximado": "SECCIÓN FINANCIERA",
-      "Acciones de sostenibilidad realizadas": "SIMBIOSIS EMPRESARIAL",
-      "Proveedores regionales": "PLANIFICACIÓN ESTRATÉGICA"
+      "Áreas organizacionales": "Estrategia, Gobernanza y Gestión del Riesgo",
+      "Políticas de sostenibilidad": "Estrategia, Gobernanza y Gestión del Riesgo",
+      "Análisis de materialidad": "Estrategia, Gobernanza y Gestión del Riesgo",
+      "Riesgos y oportunidades ambientales": "Gestión Ambiental, Simbiosis Empresarial y Desarrollo Regenerativo",
+      "Grupos de interés en la estrategia": "Estrategia, Gobernanza y Gestión del Riesgo",
+      "Indicadores de sostenibilidad": "Estrategia, Gobernanza y Gestión del Riesgo",
+      "Sistema de Gestión Ambiental": "Gestión Ambiental, Simbiosis Empresarial y Desarrollo Regenerativo",
+      "Informe de sostenibilidad": "Estrategia, Gobernanza y Gestión del Riesgo",
+      "Formación interna en sostenibilidad": "Estrategia, Gobernanza y Gestión del Riesgo",
+      "Adhesión al ACV": "Gestión Ambiental, Simbiosis Empresarial y Desarrollo Regenerativo",
+      "Categoría actual en el ACV": "Gestión Ambiental, Simbiosis Empresarial y Desarrollo Regenerativo",
+      "Participación en Líderes Progresa": "Gestión Social, Talento Humano y Desarrollo Territorial",
+      "Categoría en Líderes Progresa": "Gestión Social, Talento Humano y Desarrollo Territorial",
+      "Medición de Huella de Carbono": "Gestión Ambiental, Simbiosis Empresarial y Desarrollo Regenerativo",
+      "Inversión en Economía Circular": "Gestión Ambiental, Simbiosis Empresarial y Desarrollo Regenerativo",
+      "Economía Circular en la estrategia": "Gestión Ambiental, Simbiosis Empresarial y Desarrollo Regenerativo",
+      "Relación con la comunidad": "Gestión Social, Talento Humano y Desarrollo Territorial",
+      "Caracterización del área de influencia": "Gestión Social, Talento Humano y Desarrollo Territorial",
+      "Alineación de la responsabilidad social": "Gestión Social, Talento Humano y Desarrollo Territorial",
+      "Estrategia social en territorio": "Gestión Social, Talento Humano y Desarrollo Territorial",
+      "Definición de acciones sociales": "Gestión Social, Talento Humano y Desarrollo Territorial",
+      "Acciones de desarrollo comunitario con entidad diferente a CEO": "Gestión Social, Talento Humano y Desarrollo Territorial",
+      "Presupuesto ambiental y social": "Estrategia, Gobernanza y Gestión del Riesgo",
+      "Presupuesto gestión ambiental": "Gestión Ambiental, Simbiosis Empresarial y Desarrollo Regenerativo",
+      "Presupuesto gestión social": "Gestión Social, Talento Humano y Desarrollo Territorial",
+      "Inversión social últimos 5 años": "Gestión Social, Talento Humano y Desarrollo Territorial",
+      "Proyectos colaborativos con la comunidad": "Gestión Social, Talento Humano y Desarrollo Territorial",
+      "Objetivos de sostenibilidad y ODS": "Estrategia, Gobernanza y Gestión del Riesgo",
+      "Rendición de cuentas a grupos de interés": "Estrategia, Gobernanza y Gestión del Riesgo",
+      "Seguimiento directivo a la sostenibilidad": "Estrategia, Gobernanza y Gestión del Riesgo",
+      "Sostenibilidad comunicada a clientes": "Estrategia, Gobernanza y Gestión del Riesgo",
+      "Sostenibilidad en compras, ventas y contratación": "Estrategia, Gobernanza y Gestión del Riesgo",
+      "Sostenibilidad en la cadena de valor": "Estrategia, Gobernanza y Gestión del Riesgo",
+      "Cambio climático en la estrategia": "Gestión Ambiental, Simbiosis Empresarial y Desarrollo Regenerativo",
+      "Acciones de adaptación y mitigación climática": "Gestión Ambiental, Simbiosis Empresarial y Desarrollo Regenerativo",
+      "Reconocimiento del área de influencia": "Gestión Social, Talento Humano y Desarrollo Territorial",
+      "Inversiones con beneficios tributarios": "Gestión Social, Talento Humano y Desarrollo Territorial",
+      "Conocimiento de Obras por Impuestos": "Gestión Social, Talento Humano y Desarrollo Territorial",
+      "Participación en construcción colectiva regional": "Gestión Social, Talento Humano y Desarrollo Territorial",
+      "Conocimiento de la Estrategia de Ecodesarrollo": "Gestión Social, Talento Humano y Desarrollo Territorial",
+      "Revisión de instrumentos de ordenamiento territorial": "Gestión Social, Talento Humano y Desarrollo Territorial",
+      "Prospectiva territorial en inversiones": "Gestión Social, Talento Humano y Desarrollo Territorial",
+      "Innovación, investigación y desarrollo": "Innovación, Investigación y Eficiencia Operativa",
+      "Metodología para nuevos productos y servicios": "Innovación, Investigación y Eficiencia Operativa",
+      "Retos para la continuidad del negocio": "Innovación, Investigación y Eficiencia Operativa",
+      "Gestión de riesgos con actores externos": "Estrategia, Gobernanza y Gestión del Riesgo",
+      "Plan de continuidad del negocio": "Estrategia, Gobernanza y Gestión del Riesgo",
+      "Formación interna del talento": "Gestión Social, Talento Humano y Desarrollo Territorial",
+      "Formación externa del talento": "Gestión Social, Talento Humano y Desarrollo Territorial",
+      "Atracción de talento": "Gestión Social, Talento Humano y Desarrollo Territorial",
+      "Formación en liderazgo": "Gestión Social, Talento Humano y Desarrollo Territorial",
+      "Beneficios y bienestar laboral": "Gestión Social, Talento Humano y Desarrollo Territorial",
+      "Certificaciones empresariales": "Estrategia, Gobernanza y Gestión del Riesgo",
+      "Municipio": "Gestión Social, Talento Humano y Desarrollo Territorial",
+      "Ventas totales 2025": "Datos financieros",
+      "Exportaciones": "Datos financieros",
+      "Participación de exportaciones en ventas": "Datos financieros",
+      "Países de exportación": "Datos financieros",
+      "Principales mercados de exportación": "Datos financieros",
+      "Presupuesto para CTi": "Innovación, Investigación y Eficiencia Operativa",
+      "Inversión presupuestada en CTi": "Innovación, Investigación y Eficiencia Operativa",
+      "Ingresos superiores a 33.610 UVT": "Datos financieros",
+      "Impuesto de renta aproximado": "Datos financieros",
+      "Acciones de sostenibilidad realizadas": "Gestión Ambiental, Simbiosis Empresarial y Desarrollo Regenerativo",
+      "Proveedores regionales": "Estrategia, Gobernanza y Gestión del Riesgo"
     };
 
     let processedData = { companies: new Set(), questions: [], matrix: {}, municipalities: new Set() };
@@ -930,12 +931,14 @@
       const finKpis = document.getElementById('financialKpiContainer');
       const tableNotice = document.getElementById('openTextOnlyNotice');
       const chartSection = document.getElementById('chartInsightSection');
+      const mainChartContainer = document.getElementById('mainChartContainer');
       const chartControls = document.getElementById('chartTypeControls');
       const canvasWrapper = document.getElementById('canvasWrapper');
       
       finKpis.classList.add('hidden');
       tableNotice.classList.add('hidden');
       chartSection.classList.remove('hidden');
+      mainChartContainer.classList.remove('hidden');
       chartControls.classList.remove('hidden');
       if (canvasWrapper) canvasWrapper.classList.add('hidden');
       if (canvasWrapper) canvasWrapper.classList.remove('hidden');
@@ -948,8 +951,9 @@
       if (isTableOnly) {
         badge.textContent = 'Detalle Cualitativo en Tabla';
         badge.className = 'inline-block text-[11px] font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-800';
-        chartSection.classList.add('hidden');
+        mainChartContainer.classList.add('hidden');
         tableNotice.classList.remove('hidden');
+        generateRegionalInsight(selectedQ, {}, 0, false, [], null);
         renderRegionalTable(selectedQ);
         return;
       }
@@ -1135,11 +1139,90 @@
       updateRegionalView();
     }
 
+    function escapeHtml(value) {
+      return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function summarizeOpenResponses(question) {
+      const stopWords = new Set([
+        'para', 'como', 'con', 'que', 'las', 'los', 'una', 'uno', 'del', 'por', 'sus',
+        'empresa', 'empresas', 'entidad', 'entidades', 'acciones', 'accion', 'realiza',
+        'realizan', 'realizadas', 'diferente', 'tambien', 'desde', 'sobre', 'esta', 'este',
+        'estan', 'entre', 'otros', 'otras', 'ninguna', 'ninguno', 'respuesta', 'sin', 'dato'
+      ]);
+      const phraseCounts = new Map();
+      const wordCounts = new Map();
+      let responseCount = 0;
+
+      Object.keys(processedData.matrix).forEach(comp => {
+        if (!companyPassesSidebarFilters(comp)) return;
+        const answer = processedData.matrix[comp][question] || '';
+        if (isInvalidAnswer(answer)) return;
+        responseCount++;
+
+        String(answer).split(/[.;\n]+|,\s*/).map(part => cleanText(part)).forEach(phrase => {
+          const words = phrase.split(/\s+/).filter(Boolean);
+          if (words.length >= 2 && words.length <= 12) {
+            const normalizedPhrase = normalizeFilterText(phrase);
+            if (!stopWords.has(normalizedPhrase)) {
+              const current = phraseCounts.get(normalizedPhrase) || { label: phrase, count: 0 };
+              current.count++;
+              phraseCounts.set(normalizedPhrase, current);
+            }
+          }
+        });
+
+        normalizeFilterText(answer).split(/[^a-z0-9áéíóúüñ]+/).filter(word => word.length > 3).forEach(word => {
+          if (!stopWords.has(word)) wordCounts.set(word, (wordCounts.get(word) || 0) + 1);
+        });
+      });
+
+      const phrases = Array.from(phraseCounts.values())
+        .sort((a, b) => b.count - a.count || b.label.length - a.label.length)
+        .slice(0, 4)
+        .map(item => item.label);
+      const keywords = Array.from(wordCounts.entries())
+        .sort((a, b) => b[1] - a[1] || b[0].length - a[0].length)
+        .slice(0, 8)
+        .map(item => item[0]);
+
+      return { responseCount, phrases, keywords };
+    }
+
     function generateRegionalInsight(question, counts, validTotal, isMulti, numValues, statsObj) {
       const headerEl = document.getElementById('insightHeader');
       const textEl = document.getElementById('insightText');
       
       headerEl.textContent = `${question} — Análisis Estratégico CEO`;
+
+      if (TABLE_ONLY_QUESTIONS.has(question)) {
+        const summary = summarizeOpenResponses(question);
+        const phrases = summary.phrases.map(phrase => `<strong>${escapeHtml(phrase)}</strong>`).join(', ');
+        const keywords = summary.keywords.map(keyword => `<strong>${escapeHtml(keyword)}</strong>`).join(', ');
+        const summaryText = phrases || keywords
+          ? `Las empresas que realizan acciones de desarrollo comunitario con una entidad diferente a la CEO se enfocan principalmente en ${phrases || keywords}.`
+          : 'No hay respuestas cualitativas suficientes para identificar palabras clave.';
+
+        textEl.innerHTML = `
+          <div class="space-y-3 text-xs leading-relaxed">
+            <div>
+              <p class="font-bold text-emerald-400 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                <i data-lucide="key-round" class="w-4 h-4"></i>
+                <span>Resumen de respuestas (N=${summary.responseCount})</span>
+              </p>
+              <p class="text-slate-200">${summaryText}</p>
+            </div>
+            ${keywords ? `<div class="bg-slate-800/80 p-3 rounded-lg border-l-4 border-emerald-500"><p class="font-bold text-emerald-300 uppercase tracking-wider mb-1">Palabras clave</p><p class="text-slate-200">${keywords}</p></div>` : ''}
+          </div>
+        `;
+        setTimeout(() => lucide.createIcons(), 50);
+        return;
+      }
 
       if (question === "Principales mercados de exportación") {
         const sortedCategories = Object.entries(counts).sort((a, b) => b[1] - a[1]);
