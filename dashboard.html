@@ -381,6 +381,31 @@
               </select>
             </div>
           </div>
+          <div class="grid grid-cols-1 lg:grid-cols-[1.1fr_2fr] gap-4">
+            <div class="glass-card rounded-xl p-5 shadow-sm border-l-4 border-ceo-green">
+              <div class="flex items-start justify-between gap-3">
+                <div>
+                  <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Nivel de sostenibilidad</p>
+                  <h3 id="companySustainabilityLevel" class="text-2xl font-extrabold text-slate-800 mt-1">—</h3>
+                  <p id="companySustainabilityScore" class="text-sm font-bold text-ceo-green mt-1">0,0 / 100 puntos</p>
+                </div>
+                <div class="p-3 bg-emerald-50 rounded-lg text-ceo-green">
+                  <i data-lucide="leaf" class="w-6 h-6"></i>
+                </div>
+              </div>
+              <p id="companySustainabilityDescription" class="text-xs text-slate-500 mt-4 leading-relaxed"></p>
+            </div>
+            <div class="glass-card rounded-xl p-5 shadow-sm">
+              <div class="flex items-center justify-between mb-3">
+                <div>
+                  <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Desglose de la calificación</p>
+                  <p class="text-xs text-slate-500 mt-1">Cuatro módulos temáticos, 25% cada uno, más puntos PLUS.</p>
+                </div>
+                <span id="companyPlusScore" class="text-xs font-bold px-2.5 py-1 rounded-full bg-amber-100 text-amber-800">PLUS: +0,0</span>
+              </div>
+              <div id="companyModuleScores" class="grid grid-cols-1 sm:grid-cols-2 gap-2"></div>
+            </div>
+          </div>
           <div class="glass-card rounded-xl p-6 shadow-sm space-y-4">
             <div class="flex items-center justify-between border-b border-slate-100 pb-3">
               <div>
@@ -1669,10 +1694,164 @@
       });
     }
 
+    const SUSTAINABILITY_MODULES = [
+      "Estrategia, Gobernanza y Gestión del Riesgo",
+      "Gestión Ambiental, Simbiosis Empresarial y Desarrollo Regenerativo",
+      "Gestión Social, Talento Humano y Desarrollo Territorial",
+      "Innovación, Investigación y Eficiencia Operativa"
+    ];
+
+    const SUSTAINABILITY_QUESTIONS = {
+      "Estrategia, Gobernanza y Gestión del Riesgo": [
+        "Áreas organizacionales", "Políticas de sostenibilidad", "Análisis de materialidad",
+        "Indicadores de sostenibilidad", "Informe de sostenibilidad", "Objetivos de sostenibilidad y ODS",
+        "Rendición de cuentas a grupos de interés", "Seguimiento directivo a la sostenibilidad",
+        "Sostenibilidad comunicada a clientes", "Sostenibilidad en compras, ventas y contratación",
+        "Sostenibilidad en la cadena de valor", "Gestión de riesgos con actores externos",
+        "Plan de continuidad del negocio", "Formación interna en sostenibilidad"
+      ],
+      "Gestión Ambiental, Simbiosis Empresarial y Desarrollo Regenerativo": [
+        "Riesgos y oportunidades ambientales", "Sistema de Gestión Ambiental", "Medición de Huella de Carbono",
+        "Inversión en Economía Circular", "Economía Circular en la estrategia", "Acciones de sostenibilidad realizadas",
+        "Cambio climático en la estrategia", "Acciones de adaptación y mitigación climática"
+      ],
+      "Gestión Social, Talento Humano y Desarrollo Territorial": [
+        "Relación con la comunidad", "Alineación de la responsabilidad social", "Estrategia social en territorio",
+        "Definición de acciones sociales", "Presupuesto ambiental y social", "Inversión social últimos 5 años",
+        "Proyectos colaborativos con la comunidad", "Reconocimiento del área de influencia",
+        "Participación en construcción colectiva regional", "Revisión de instrumentos de ordenamiento territorial",
+        "Prospectiva territorial en inversiones", "Formación interna del talento", "Formación externa del talento",
+        "Formación en liderazgo", "Beneficios y bienestar laboral"
+      ],
+      "Innovación, Investigación y Eficiencia Operativa": [
+        "Innovación, investigación y desarrollo", "Presupuesto para CTi"
+      ]
+    };
+
+    function answerHas(answer, terms) {
+      const normalized = normalizeFilterText(answer);
+      return terms.some(term => normalized.includes(normalizeFilterText(term)));
+    }
+
+    function scoreSustainabilityQuestion(company, question) {
+      const answer = processedData.matrix[company]?.[question] || '';
+      if (isInvalidAnswer(answer)) return 0;
+      const options = parseAnswersForQuestion(question, answer);
+      const hasValidOption = options.some(option => !isInvalidAnswer(option));
+      if (!hasValidOption) return 0;
+
+      if (question === 'Áreas organizacionales') {
+        if (answerHas(answer, ['área de sostenibilidad'])) return 100;
+        if (answerHas(answer, ['responsabilidad social', 'área ambiental'])) return 80;
+        if (answerHas(answer, ['contratación de terceros', 'terceros'])) return 40;
+        return 0;
+      }
+      if (question === 'Políticas de sostenibilidad') {
+        const mandatory = ['seguridad y salud', 'protección de datos', 'anticorrupción', 'hostigamiento', 'acoso', 'discriminación'];
+        const voluntary = ['ambiental', 'política laboral', 'política social', 'derechos humanos', 'libertad de asociación', 'trabajo forzoso', 'trabajo infantil', 'equidad de género', 'consumidor'];
+        const mandatoryCount = options.filter(option => answerHas(option, mandatory)).length;
+        const voluntaryCount = options.filter(option => answerHas(option, voluntary)).length;
+        return Math.min(100, (mandatoryCount > 0 ? 40 : 0) + Math.min(60, voluntaryCount * (60 / voluntary.length)));
+      }
+      if (question === 'Indicadores de sostenibilidad') {
+        return answerHas(answer, ['GRI', 'SASB', 'ISSB', 'IFRS', 'ODS', 'Pacto Global', 'DJSI', 'Ethos', 'FTSE4Good']) ? 100 : 50;
+      }
+      if (question === 'Sistema de Gestión Ambiental') {
+        if (answerHas(answer, ['certificado'])) return 100;
+        if (answerHas(answer, ['no certificado'])) return 60;
+        return 0;
+      }
+      if (question === 'Relación con la comunidad') return answerHas(answer, ['plan de relacionamiento', 'corredores sostenibles']) ? 100 : 0;
+      if (question === 'Estrategia social en territorio') {
+        if (answerHas(answer, ['devbida', 'clubes de robótica', 'corredores sostenibles'])) return 100;
+        if (answerHas(answer, ['entidad diferente a ceo'])) return 70;
+        return 0;
+      }
+      if (question === 'Definición de acciones sociales') {
+        if (answerHas(answer, ['diálogo con comunidades', 'diagnóstico', 'estudios', 'articulación con autoridades', 'participación ciudadana'])) return 100;
+        if (answerHas(answer, ['aliados externos'])) return 70;
+        if (answerHas(answer, ['definición interna', 'compromisos'])) return 40;
+        return 0;
+      }
+      if (question === 'Reconocimiento del área de influencia') {
+        if (answerHas(answer, ['menos de 3 años'])) return 100;
+        if (answerHas(answer, ['más de 3 años'])) return 50;
+        return 0;
+      }
+      if (question === 'Participación en construcción colectiva regional') return answerHas(answer, ['impulsa', 'representación CEO', 'participa ocasionalmente']) ? 100 : 0;
+      if (question === 'Revisión de instrumentos de ordenamiento territorial') return answerHas(answer, ['integrados', 'cumplimiento legal']) ? 100 : 0;
+      if (question === 'Prospectiva territorial en inversiones') return answerHas(answer, ['sí', 'si', 'escenarios futuros']) ? 100 : 0;
+      if (question === 'Formación interna del talento' || question === 'Formación externa del talento') return 100;
+      if (question === 'Formación interna en sostenibilidad') return answerHas(answer, ['sí', 'si']) ? 100 : 10;
+      if (question === 'Acciones de sostenibilidad realizadas' || question === 'Acciones de adaptación y mitigación climática') return answerHas(answer, ['ninguna']) ? 0 : 100;
+      if (question === 'Beneficios y bienestar laboral') return answerHas(answer, ['sí', 'si', 'estructurado']) ? 100 : 0;
+      if (question === 'Innovación, investigación y desarrollo') return answerHas(answer, ['sí', 'si']) ? 100 : 0;
+      return answerHas(answer, ['sí', 'si', 'implementado', 'definidos', 'registra', 'selecciona']) ? 100 : 0;
+    }
+
+    function calculatePlusScore(company) {
+      const matrix = processedData.matrix[company] || {};
+      let plus = 0;
+      const isPositive = value => {
+        if (isInvalidAnswer(value)) return false;
+        const normalized = normalizeFilterText(value);
+        return !normalized.startsWith('no') && !normalized.includes('ninguna') && !normalized.includes('no aplica');
+      };
+      if (isPositive(matrix['Certificaciones empresariales'])) plus += 2;
+      if (isPositive(matrix['Adhesión al ACV'])) plus += 2;
+      if (isPositive(matrix['Participación en Líderes Progresa'])) plus += 2;
+      if (isPositive(matrix['Proveedores regionales'])) plus += 1.5;
+      if (isPositive(matrix['Inversiones con beneficios tributarios'])) plus += 1.5;
+      if (answerHas(matrix['Conocimiento de Obras por Impuestos'] || '', ['contribuyente', 'lidera', 'explora'])) plus += 2;
+      if (answerHas(matrix['Metodología para nuevos productos y servicios'] || '', ['sí', 'si', 'propia'])) plus += 1.5;
+      return Math.min(10, plus);
+    }
+
+    function calculateCompanySustainability(company) {
+      const moduleScores = {};
+      SUSTAINABILITY_MODULES.forEach(module => {
+        const questions = SUSTAINABILITY_QUESTIONS[module].filter(question => processedData.questions.includes(question));
+        const total = questions.reduce((sum, question) => sum + scoreSustainabilityQuestion(company, question), 0);
+        moduleScores[module] = questions.length > 0 ? total / questions.length : 0;
+      });
+      const baseScore = SUSTAINABILITY_MODULES.reduce((sum, module) => sum + moduleScores[module] * 0.25, 0);
+      const plusScore = calculatePlusScore(company);
+      const score = Math.min(100, baseScore + plusScore);
+      const level = score < 40 ? 'TIGRILLO' : score < 70 ? 'PUMA' : 'JAGUAR';
+      return { moduleScores, baseScore, plusScore, score, level };
+    }
+
+    function getSustainabilityDescription(level) {
+      if (level === 'TIGRILLO') return 'Nivel bajo: cuenta con una base importante de oportunidades para fortalecer su gestión de sostenibilidad.';
+      if (level === 'PUMA') return 'Nivel medio: presenta capacidades de planeación y adaptación, con oportunidades concretas de mejora.';
+      return 'Nivel avanzado: demuestra una gestión de sostenibilidad sólida y capacidad para responder a los retos del entorno.';
+    }
+
+    function renderCompanySustainabilityScore(company) {
+      const result = calculateCompanySustainability(company);
+      const levelEl = document.getElementById('companySustainabilityLevel');
+      const scoreEl = document.getElementById('companySustainabilityScore');
+      const descriptionEl = document.getElementById('companySustainabilityDescription');
+      const moduleEl = document.getElementById('companyModuleScores');
+      const levelColors = { TIGRILLO: 'text-rose-700', PUMA: 'text-amber-700', JAGUAR: 'text-emerald-700' };
+      levelEl.textContent = result.level;
+      levelEl.className = `text-2xl font-extrabold mt-1 ${levelColors[result.level]}`;
+      scoreEl.textContent = `${result.score.toFixed(1).replace('.', ',')} / 100 puntos`;
+      descriptionEl.textContent = getSustainabilityDescription(result.level);
+      document.getElementById('companyPlusScore').textContent = `PLUS: +${result.plusScore.toFixed(1).replace('.', ',')}`;
+      moduleEl.innerHTML = SUSTAINABILITY_MODULES.map(module => `
+        <div class="bg-slate-50 border border-slate-200 rounded-lg p-2.5">
+          <p class="text-[10px] font-bold text-slate-500 uppercase leading-tight">${module}</p>
+          <p class="text-sm font-extrabold text-ceo-blue mt-1">${result.moduleScores[module].toFixed(1).replace('.', ',')} / 100</p>
+        </div>
+      `).join('');
+    }
+
     // --- 3. PERFIL EMPRESARIAL (BENCHMARKING) ---
     function updateCompanyView() {
       const selectedCompany = document.getElementById('companySelect').value || Array.from(processedData.companies)[0];
       if (!selectedCompany) return;
+      renderCompanySustainabilityScore(selectedCompany);
       renderRadarChart(selectedCompany);
       renderCompanyBenchmarkingTable(selectedCompany);
     }
@@ -1680,37 +1859,14 @@
     function renderRadarChart(company) {
       const ctx = document.getElementById('radarChart').getContext('2d');
       if (radarChartInstance) radarChartInstance.destroy();
-      const modules = Array.from(new Set(Object.values(MODULE_MAPPING))).sort();
-      
-      const companyScores = [];
-      const regionalScores = [];
-      modules.forEach(mod => {
-        const modQuestions = processedData.questions.filter(q => (MODULE_MAPPING[q] || 'GENERAL') === mod);
-        
-        let compSum = 0, compCount = 0;
-        modQuestions.forEach(q => {
-          const ans = processedData.matrix[company][q];
-          const score = mapAnswerToScore(ans);
-          if (score !== null) {
-            compSum += score;
-            compCount++;
-          }
-        });
-        companyScores.push(compCount > 0 ? (compSum / compCount).toFixed(1) : 0);
-        
-        let regSum = 0, regCount = 0;
-        Object.keys(processedData.matrix).forEach(c => {
-          if (!companyPassesSidebarFilters(c)) return;
-          modQuestions.forEach(q => {
-            const ans = processedData.matrix[c][q];
-            const score = mapAnswerToScore(ans);
-            if (score !== null) {
-              regSum += score;
-              regCount++;
-            }
-          });
-        });
-        regionalScores.push(regCount > 0 ? (regSum / regCount).toFixed(1) : 0);
+      const modules = SUSTAINABILITY_MODULES;
+      const companyResult = calculateCompanySustainability(company);
+      const companyScores = modules.map(module => companyResult.moduleScores[module].toFixed(1));
+      const regionalScores = modules.map(module => {
+        const eligibleCompanies = Object.keys(processedData.matrix).filter(comp => companyPassesSidebarFilters(comp));
+        if (eligibleCompanies.length === 0) return 0;
+        const total = eligibleCompanies.reduce((sum, comp) => sum + calculateCompanySustainability(comp).moduleScores[module], 0);
+        return (total / eligibleCompanies.length).toFixed(1);
       });
       
       document.getElementById('radarTitle').textContent = `Benchmarking de Adopción: ${company} vs. Promedio Oriente Antioqueño`;
