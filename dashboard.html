@@ -349,7 +349,7 @@
             <div class="flex items-center justify-between border-b border-slate-100 pb-3">
               <div>
                 <h3 class="text-base font-bold text-slate-800" id="municipalChartTitle">Brechas & Fortalezas Territoriales</h3>
-                <p class="text-xs text-slate-500">Comparativa del nivel de adopción por módulo temático entre el municipio y la subregión del Oriente Antioqueño.</p>
+                <p class="text-xs text-slate-500">Comparativa del nivel de sostenibilidad en los cuatro módulos temáticos frente a las empresas de los demás municipios.</p>
               </div>
               <span class="bg-emerald-50 text-ceo-green font-bold text-xs px-3 py-1 rounded-full">Análisis Territorial</span>
             </div>
@@ -372,13 +372,55 @@
         <!-- 3. PERFIL EMPRESARIAL (BENCHMARKING) -->
         <div id="viewCompany" class="hidden space-y-6">
           <div class="glass-card rounded-xl p-5 shadow-sm border-t-4 border-ceo-green">
-            <div class="space-y-1.5">
+            <div class="flex flex-col sm:flex-row sm:items-end gap-3">
+              <div class="space-y-1.5 flex-1">
               <label class="text-xs font-bold text-slate-600 uppercase tracking-wider flex items-center space-x-1">
                 <i data-lucide="building" class="w-3.5 h-3.5 text-ceo-green"></i>
                 <span>Seleccionar Empresa / Razón Social para Consultar</span>
               </label>
               <select id="companySelect" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-800 focus:ring-2 focus:ring-ceo-green focus:outline-none transition-all">
               </select>
+              </div>
+              <button onclick="toggleCompanySummary()" class="bg-ceo-blue hover:bg-ceo-bluelight text-white text-xs font-semibold px-3 py-2.5 rounded-lg shadow-sm transition-all flex items-center justify-center space-x-2 whitespace-nowrap">
+                <i data-lucide="list-checks" class="w-4 h-4"></i>
+                <span>Resumen de todas las empresas</span>
+              </button>
+            </div>
+          </div>
+          <div id="companySummaryPanel" class="hidden space-y-4">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div class="glass-card rounded-xl p-4 shadow-sm border-l-4 border-rose-500">
+                <p class="text-[11px] font-bold text-slate-500 uppercase">TIGRILLO · Nivel bajo</p>
+                <h4 id="companySummaryTigrillo" class="text-xl font-extrabold text-rose-700 mt-1">0 · 0%</h4>
+              </div>
+              <div class="glass-card rounded-xl p-4 shadow-sm border-l-4 border-amber-500">
+                <p class="text-[11px] font-bold text-slate-500 uppercase">PUMA · Nivel medio</p>
+                <h4 id="companySummaryPuma" class="text-xl font-extrabold text-amber-700 mt-1">0 · 0%</h4>
+              </div>
+              <div class="glass-card rounded-xl p-4 shadow-sm border-l-4 border-emerald-500">
+                <p class="text-[11px] font-bold text-slate-500 uppercase">JAGUAR · Nivel avanzado</p>
+                <h4 id="companySummaryJaguar" class="text-xl font-extrabold text-emerald-700 mt-1">0 · 0%</h4>
+              </div>
+            </div>
+            <div class="glass-card rounded-xl p-6 shadow-sm space-y-4">
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+                <div>
+                  <h3 class="text-base font-bold text-slate-800">Nivel de sostenibilidad de todas las empresas</h3>
+                  <p id="companySummarySubtitle" class="text-xs text-slate-500">Clasificación según la metodología CEO 2026.</p>
+                </div>
+                <button onclick="downloadCompanySummaryExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3 py-2 rounded-lg flex items-center justify-center space-x-2 transition-all">
+                  <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
+                  <span>Descargar Excel</span>
+                </button>
+              </div>
+              <div class="overflow-x-auto custom-scrollbar border border-slate-200 rounded-lg">
+                <table class="w-full text-left border-collapse text-xs">
+                  <thead class="bg-slate-100 text-slate-700 font-bold uppercase tracking-wider border-b border-slate-200">
+                    <tr><th class="p-3">Empresa</th><th class="p-3">Municipio</th><th class="p-3">Puntaje</th><th class="p-3">Nivel</th><th class="p-3">Módulos temáticos</th></tr>
+                  </thead>
+                  <tbody id="companySummaryBody" class="divide-y divide-slate-200 text-slate-600 font-medium"></tbody>
+                </table>
+              </div>
             </div>
           </div>
           <div class="grid grid-cols-1 lg:grid-cols-[1.1fr_2fr] gap-4">
@@ -647,6 +689,10 @@
         return false;
       }
       return true;
+    }
+
+    function companyPassesMunicipalFilters(company) {
+      return activeFilterTamano === 'ALL' || normalizeFilterText(getCompanySize(company)) === normalizeFilterText(activeFilterTamano);
     }
 
     function isInvalidAnswer(ans) {
@@ -1474,7 +1520,7 @@
       const totalCompanies = processedData.companies.size;
       const munCompanies = [];
       Object.keys(processedData.matrix).forEach(c => {
-        if (companyPassesSidebarFilters(c) && processedData.matrix[c]['Municipio'] === selectedMun) {
+        if (companyPassesMunicipalFilters(c) && processedData.matrix[c]['Municipio'] === selectedMun) {
           munCompanies.push(c);
         }
       });
@@ -1485,33 +1531,17 @@
       document.getElementById('kpiMunEmpresas').textContent = `${munCount} empresas`;
       document.getElementById('kpiMunPct').textContent = `${munPct}% del total regional`;
 
-      const modules = Array.from(new Set(Object.values(MODULE_MAPPING))).sort();
+      const modules = SUSTAINABILITY_MODULES;
       const munModuleScores = {};
       const regModuleScores = {};
 
       modules.forEach(mod => {
-        const modQuestions = processedData.questions.filter(q => (MODULE_MAPPING[q] || 'GENERAL') === mod);
+        const munTotal = munCompanies.reduce((sum, comp) => sum + calculateCompanySustainability(comp).moduleScores[mod], 0);
+        munModuleScores[mod] = munCompanies.length > 0 ? parseFloat((munTotal / munCompanies.length).toFixed(1)) : 0;
 
-        // Promedio Municipal
-        let munSum = 0, munCnt = 0;
-        munCompanies.forEach(comp => {
-          modQuestions.forEach(q => {
-            const score = mapAnswerToScore(processedData.matrix[comp][q]);
-            if (score !== null) { munSum += score; munCnt++; }
-          });
-        });
-        munModuleScores[mod] = munCnt > 0 ? parseFloat((munSum / munCnt).toFixed(1)) : 0;
-
-        // Promedio Regional Global
-        let regSum = 0, regCnt = 0;
-        Object.keys(processedData.matrix).forEach(comp => {
-          if (!companyPassesSidebarFilters(comp)) return;
-          modQuestions.forEach(q => {
-            const score = mapAnswerToScore(processedData.matrix[comp][q]);
-            if (score !== null) { regSum += score; regCnt++; }
-          });
-        });
-        regModuleScores[mod] = regCnt > 0 ? parseFloat((regSum / regCnt).toFixed(1)) : 0;
+        const comparisonCompanies = Object.keys(processedData.matrix).filter(comp => companyPassesMunicipalFilters(comp) && processedData.matrix[comp]['Municipio'] !== selectedMun);
+        const regTotal = comparisonCompanies.reduce((sum, comp) => sum + calculateCompanySustainability(comp).moduleScores[mod], 0);
+        regModuleScores[mod] = comparisonCompanies.length > 0 ? parseFloat((regTotal / comparisonCompanies.length).toFixed(1)) : 0;
       });
 
       // Encontrar módulo fortaleza
@@ -1524,14 +1554,14 @@
 
       renderMunicipalChart(selectedMun, modules, munModuleScores, regModuleScores);
       generateMunicipalInsight(selectedMun, munCount, munPct, topMod, topScore, munModuleScores, regModuleScores);
-      renderMunicipalTable(selectedMun);
+      renderMunicipalTable(selectedMun, munCompanies, munModuleScores, regModuleScores);
     }
 
     function renderMunicipalChart(selectedMun, modules, munScores, regScores) {
       const ctx = document.getElementById('municipalChart').getContext('2d');
       if (municipalChartInstance) municipalChartInstance.destroy();
 
-      document.getElementById('municipalChartTitle').textContent = `Desempeño Comparativo: ${selectedMun} vs. Promedio Oriente Antioqueño`;
+      document.getElementById('municipalChartTitle').textContent = `Desempeño Comparativo: ${selectedMun} vs. Demás Municipios`;
 
       const munData = modules.map(m => munScores[m]);
       const regData = modules.map(m => regScores[m]);
@@ -1551,7 +1581,7 @@
                 pointBackgroundColor: '#248A3D'
               },
               {
-                label: 'Promedio Oriente Antioqueño',
+                label: 'Promedio demás municipios',
                 data: regData,
                 backgroundColor: 'rgba(0, 46, 91, 0.25)',
                 borderColor: '#002E5B',
@@ -1588,7 +1618,7 @@
                 borderRadius: 4
               },
               {
-                label: 'Promedio Oriente Antioqueño',
+                label: 'Promedio demás municipios',
                 data: regData,
                 backgroundColor: '#002E5B',
                 borderRadius: 4
@@ -1659,38 +1689,50 @@
       `;
     }
 
-    function renderMunicipalTable(selectedMun) {
+    function renderMunicipalTable(selectedMun, munCompanies, munModuleScores, regModuleScores) {
       const thead = document.getElementById('tableHeader');
       const tbody = document.getElementById('tableBody');
-      document.getElementById('tableTitle').textContent = `Detalle Empresarial: ${selectedMun}`;
-      document.getElementById('tableSubtitle').textContent = `Listado de empresas evaluadas ubicadas en ${selectedMun}.`;
+      document.getElementById('tableTitle').textContent = `Brechas de Sostenibilidad: ${selectedMun}`;
+      document.getElementById('tableSubtitle').textContent = 'Resumen de los módulos con menor desempeño frente a las empresas de los demás municipios.';
 
       thead.innerHTML = `
         <tr>
-          <th class="p-3">Empresa / Razón Social</th>
-          <th class="p-3">Ventas 2025</th>
-          <th class="p-3">Sistema Gestión Ambiental</th>
-          <th class="p-3">Estrategia Social</th>
+          <th class="p-3">Módulo</th>
+          <th class="p-3">Promedio ${selectedMun}</th>
+          <th class="p-3">Promedio demás municipios</th>
+          <th class="p-3">Brecha</th>
+          <th class="p-3">Qué falta / a qué corresponde</th>
         </tr>
       `;
       tbody.innerHTML = '';
 
-      Object.keys(processedData.matrix).forEach(comp => {
-        if (companyPassesSidebarFilters(comp) && processedData.matrix[comp]['Municipio'] === selectedMun) {
-          const ventas = processedData.matrix[comp]['Ventas totales 2025'] || 'Sin Dato';
-          const sga = processedData.matrix[comp]['Sistema de Gestión Ambiental'] || 'Sin Dato';
-          const social = processedData.matrix[comp]['Estrategia social en territorio'] || 'Sin Dato';
-
-          const tr = document.createElement('tr');
-          tr.className = 'hover:bg-slate-50 transition-all';
-          tr.innerHTML = `
-            <td class="p-3 font-semibold text-slate-800">${comp}</td>
-            <td class="p-3 text-slate-600 font-medium">${ventas}</td>
-            <td class="p-3 text-slate-600">${sga}</td>
-            <td class="p-3 text-slate-600">${social}</td>
-          `;
-          tbody.appendChild(tr);
-        }
+      SUSTAINABILITY_MODULES.forEach(module => {
+        const gap = munModuleScores[module] - regModuleScores[module];
+        const questionGaps = SUSTAINABILITY_QUESTIONS[module]
+          .filter(question => processedData.questions.includes(question))
+          .map(question => {
+            const munTotal = munCompanies.reduce((sum, company) => sum + scoreSustainabilityQuestion(company, question), 0);
+            const otherCompanies = Object.keys(processedData.matrix).filter(company => companyPassesMunicipalFilters(company) && processedData.matrix[company]['Municipio'] !== selectedMun);
+            const otherTotal = otherCompanies.reduce((sum, company) => sum + scoreSustainabilityQuestion(company, question), 0);
+            return { question, gap: (munTotal / Math.max(1, munCompanies.length)) - (otherTotal / Math.max(1, otherCompanies.length)) };
+          })
+          .filter(item => item.gap < -0.1)
+          .sort((a, b) => a.gap - b.gap)
+          .slice(0, 3);
+        const missing = questionGaps.length > 0
+          ? questionGaps.map(item => `${item.question} (menor adopción)`).join('; ')
+          : 'No se identifica una brecha material frente a los demás municipios.';
+        const gapClass = gap < -0.1 ? 'text-rose-700 font-bold' : gap > 0.1 ? 'text-emerald-700 font-bold' : 'text-slate-600';
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-50 transition-all';
+        tr.innerHTML = `
+          <td class="p-3 font-semibold text-slate-800">${module}</td>
+          <td class="p-3 text-slate-600">${munModuleScores[module].toFixed(1)}%</td>
+          <td class="p-3 text-slate-600">${regModuleScores[module].toFixed(1)}%</td>
+          <td class="p-3 ${gapClass}">${gap >= 0 ? '+' : ''}${gap.toFixed(1)} pp</td>
+          <td class="p-3 text-slate-600">${missing}</td>
+        `;
+        tbody.appendChild(tr);
       });
     }
 
@@ -1739,6 +1781,10 @@
       const options = parseAnswersForQuestion(question, answer);
       const hasValidOption = options.some(option => !isInvalidAnswer(option));
       if (!hasValidOption) return 0;
+      if (question === 'Presupuesto para CTi' || question === 'Presupuesto ambiental y social') {
+        const numericValue = parseNumericValue(answer);
+        return numericValue !== null ? (numericValue > 0 ? 100 : 0) : (answerHas(answer, ['sí', 'si']) ? 100 : 0);
+      }
 
       if (question === 'Áreas organizacionales') {
         if (answerHas(answer, ['área de sostenibilidad'])) return 100;
@@ -1845,6 +1891,66 @@
           <p class="text-sm font-extrabold text-ceo-blue mt-1">${result.moduleScores[module].toFixed(1).replace('.', ',')} / 100</p>
         </div>
       `).join('');
+    }
+
+    function getCompanySummaryRows() {
+      return Array.from(processedData.companies).sort().map(company => {
+        const result = calculateCompanySustainability(company);
+        return {
+          company,
+          municipality: processedData.matrix[company]?.['Municipio'] || 'Sin especificar',
+          score: result.score,
+          level: result.level,
+          moduleScores: result.moduleScores
+        };
+      });
+    }
+
+    function renderCompanySummary() {
+      const rows = getCompanySummaryRows();
+      const total = rows.length;
+      const counts = rows.reduce((result, row) => {
+        result[row.level]++;
+        return result;
+      }, { TIGRILLO: 0, PUMA: 0, JAGUAR: 0 });
+      const formatCategory = level => `${counts[level]} · ${total > 0 ? ((counts[level] / total) * 100).toFixed(1).replace('.', ',') : '0,0'}%`;
+      document.getElementById('companySummaryTigrillo').textContent = formatCategory('TIGRILLO');
+      document.getElementById('companySummaryPuma').textContent = formatCategory('PUMA');
+      document.getElementById('companySummaryJaguar').textContent = formatCategory('JAGUAR');
+      document.getElementById('companySummarySubtitle').textContent = `${total} empresas clasificadas según la metodología CEO 2026.`;
+      document.getElementById('companySummaryBody').innerHTML = rows.map(row => `
+        <tr class="hover:bg-slate-50 transition-all">
+          <td class="p-3 font-semibold text-slate-800">${escapeHtml(row.company)}</td>
+          <td class="p-3 text-slate-500">${escapeHtml(row.municipality)}</td>
+          <td class="p-3 font-bold text-ceo-blue">${row.score.toFixed(1).replace('.', ',')}</td>
+          <td class="p-3 font-bold ${row.level === 'JAGUAR' ? 'text-emerald-700' : row.level === 'PUMA' ? 'text-amber-700' : 'text-rose-700'}">${row.level}</td>
+          <td class="p-3 text-slate-600">${SUSTAINABILITY_MODULES.map(module => `${escapeHtml(module)}: ${row.moduleScores[module].toFixed(1).replace('.', ',')}`).join(' | ')}</td>
+        </tr>
+      `).join('');
+    }
+
+    function toggleCompanySummary() {
+      const panel = document.getElementById('companySummaryPanel');
+      panel.classList.toggle('hidden');
+      if (!panel.classList.contains('hidden')) {
+        renderCompanySummary();
+        lucide.createIcons();
+      }
+    }
+
+    function downloadCompanySummaryExcel() {
+      const rows = getCompanySummaryRows();
+      const exportRows = rows.map(row => ({
+        'Empresa': row.company,
+        'Municipio': row.municipality,
+        'Puntaje total': Number(row.score.toFixed(1)),
+        'Nivel': row.level,
+        ...Object.fromEntries(SUSTAINABILITY_MODULES.map(module => [module, Number(row.moduleScores[module].toFixed(1))]))
+      }));
+      const worksheet = XLSX.utils.json_to_sheet(exportRows);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Nivel sostenibilidad');
+      XLSX.writeFile(workbook, 'Nivel_Sostenibilidad_Empresas_CEO_2026.xlsx');
     }
 
     // --- 3. PERFIL EMPRESARIAL (BENCHMARKING) ---
