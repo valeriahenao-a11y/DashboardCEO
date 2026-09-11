@@ -229,6 +229,10 @@
                 <i data-lucide="help-circle" class="w-3.5 h-3.5 text-ceo-blue"></i>
                 <span>Seleccionar Pregunta / Indicador del Diagnóstico</span>
               </label>
+              <div class="relative">
+                <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"></i>
+                <input id="questionSearch" type="search" placeholder="Buscar por palabra clave..." aria-label="Buscar pregunta o indicador" class="w-full bg-white border border-slate-300 rounded-lg pl-9 pr-3 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 focus:ring-2 focus:ring-ceo-blue focus:outline-none transition-all">
+              </div>
               <select id="questionSelect" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-800 focus:ring-2 focus:ring-ceo-blue focus:outline-none transition-all">
               </select>
             </div>
@@ -723,6 +727,7 @@
 
     function setupEventListeners() {
       document.getElementById('fileInput').addEventListener('change', handleFileUpload);
+      document.getElementById('questionSearch').addEventListener('input', filterQuestionOptions);
       document.getElementById('questionSelect').addEventListener('change', updateRegionalView);
       document.getElementById('companySelect').addEventListener('change', updateCompanyView);
       document.getElementById('tableSearch').addEventListener('input', filterTable);
@@ -881,13 +886,7 @@
 
     function updateSelectors() {
       const qSelect = document.getElementById('questionSelect');
-      qSelect.innerHTML = '';
-      processedData.questions.forEach(q => {
-        const opt = document.createElement('option');
-        opt.value = q;
-        opt.textContent = q;
-        qSelect.appendChild(opt);
-      });
+      renderQuestionOptions(document.getElementById('questionSearch').value);
 
       const cSelect = document.getElementById('companySelect');
       cSelect.innerHTML = '';
@@ -919,6 +918,37 @@
 
       document.getElementById('kpiTotalEmpresas').textContent = processedData.companies.size;
       document.getElementById('kpiTotalPreguntas').textContent = processedData.questions.length;
+    }
+
+    function filterQuestionOptions(event) {
+      renderQuestionOptions(event.target.value);
+      updateRegionalView();
+    }
+
+    function renderQuestionOptions(searchTerm = '') {
+      const qSelect = document.getElementById('questionSelect');
+      const currentQuestion = qSelect.value;
+      const normalizedSearch = normalizeFilterText(searchTerm);
+      const matchingQuestions = processedData.questions.filter(question =>
+        normalizeFilterText(question).includes(normalizedSearch)
+      );
+
+      qSelect.innerHTML = '';
+      matchingQuestions.forEach(question => {
+        const opt = document.createElement('option');
+        opt.value = question;
+        opt.textContent = question;
+        qSelect.appendChild(opt);
+      });
+
+      if (matchingQuestions.length > 0) {
+        qSelect.value = matchingQuestions.includes(currentQuestion) ? currentQuestion : matchingQuestions[0];
+      } else {
+        const opt = document.createElement('option');
+        opt.textContent = 'No se encontraron preguntas';
+        opt.disabled = true;
+        qSelect.appendChild(opt);
+      }
     }
 
     function updateMunicipalTicker() {
