@@ -381,6 +381,10 @@
                 <i data-lucide="building" class="w-3.5 h-3.5 text-ceo-green"></i>
                 <span>Seleccionar Empresa / Razón Social para Consultar</span>
               </label>
+              <div class="relative">
+                <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"></i>
+                <input id="companySearch" type="search" placeholder="Buscar empresa por palabra clave..." aria-label="Buscar empresa por palabra clave" class="w-full bg-white border border-slate-300 rounded-lg pl-9 pr-3 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 focus:ring-2 focus:ring-ceo-green focus:outline-none transition-all">
+              </div>
               <select id="companySelect" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-800 focus:ring-2 focus:ring-ceo-green focus:outline-none transition-all">
               </select>
               </div>
@@ -393,16 +397,31 @@
           <div id="companySummaryPanel" class="hidden space-y-4">
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div class="glass-card rounded-xl p-4 shadow-sm border-l-4 border-rose-500">
-                <p class="text-[11px] font-bold text-slate-500 uppercase">TIGRILLO · Nivel bajo</p>
-                <h4 id="companySummaryTigrillo" class="text-xl font-extrabold text-rose-700 mt-1">0 · 0%</h4>
+                <div class="flex items-center gap-3">
+                  <img src="TIGRILLO.png" alt="Tigrillo" class="w-16 h-16 object-contain flex-shrink-0">
+                  <div>
+                    <p class="text-[11px] font-bold text-slate-500 uppercase">TIGRILLO · Nivel bajo</p>
+                    <h4 id="companySummaryTigrillo" class="text-xl font-extrabold text-rose-700 mt-1">0 · 0%</h4>
+                  </div>
+                </div>
               </div>
               <div class="glass-card rounded-xl p-4 shadow-sm border-l-4 border-amber-500">
-                <p class="text-[11px] font-bold text-slate-500 uppercase">PUMA · Nivel medio</p>
-                <h4 id="companySummaryPuma" class="text-xl font-extrabold text-amber-700 mt-1">0 · 0%</h4>
+                <div class="flex items-center gap-3">
+                  <img src="PUMA.png" alt="Puma" class="w-16 h-16 object-contain flex-shrink-0">
+                  <div>
+                    <p class="text-[11px] font-bold text-slate-500 uppercase">PUMA · Nivel medio</p>
+                    <h4 id="companySummaryPuma" class="text-xl font-extrabold text-amber-700 mt-1">0 · 0%</h4>
+                  </div>
+                </div>
               </div>
               <div class="glass-card rounded-xl p-4 shadow-sm border-l-4 border-emerald-500">
-                <p class="text-[11px] font-bold text-slate-500 uppercase">JAGUAR · Nivel avanzado</p>
-                <h4 id="companySummaryJaguar" class="text-xl font-extrabold text-emerald-700 mt-1">0 · 0%</h4>
+                <div class="flex items-center gap-3">
+                  <img src="JAGUAR.png" alt="Jaguar" class="w-16 h-16 object-contain flex-shrink-0">
+                  <div>
+                    <p class="text-[11px] font-bold text-slate-500 uppercase">JAGUAR · Nivel avanzado</p>
+                    <h4 id="companySummaryJaguar" class="text-xl font-extrabold text-emerald-700 mt-1">0 · 0%</h4>
+                  </div>
+                </div>
               </div>
             </div>
             <div class="glass-card rounded-xl p-6 shadow-sm space-y-4">
@@ -429,10 +448,13 @@
           <div class="grid grid-cols-1 lg:grid-cols-[1.1fr_2fr] gap-4">
             <div class="glass-card rounded-xl p-5 shadow-sm border-l-4 border-ceo-green">
               <div class="flex items-start justify-between gap-3">
-                <div>
-                  <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Nivel de sostenibilidad</p>
-                  <h3 id="companySustainabilityLevel" class="text-2xl font-extrabold text-slate-800 mt-1">—</h3>
-                  <p id="companySustainabilityScore" class="text-sm font-bold text-ceo-green mt-1">0,0 / 100 puntos</p>
+                <div class="flex items-center gap-3 min-w-0">
+                  <img id="companySustainabilityImage" src="TIGRILLO.png" alt="Categoría de sostenibilidad" class="w-20 h-20 object-contain flex-shrink-0">
+                  <div>
+                    <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Nivel de sostenibilidad</p>
+                    <h3 id="companySustainabilityLevel" class="text-2xl font-extrabold text-slate-800 mt-1">—</h3>
+                    <p id="companySustainabilityScore" class="text-sm font-bold text-ceo-green mt-1">0,0 / 100 puntos</p>
+                  </div>
                 </div>
                 <div class="p-3 bg-emerald-50 rounded-lg text-ceo-green">
                   <i data-lucide="leaf" class="w-6 h-6"></i>
@@ -444,7 +466,7 @@
               <div class="flex items-center justify-between mb-3">
                 <div>
                   <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Desglose de la calificación</p>
-                  <p class="text-xs text-slate-500 mt-1">Cuatro módulos temáticos, 25% cada uno, más puntos PLUS.</p>
+                  <p class="text-xs text-slate-500 mt-1">Módulos temáticos ponderados 35% · 30% · 20% · 15%, más puntos PLUS.</p>
                 </div>
                 <span id="companyPlusScore" class="text-xs font-bold px-2.5 py-1 rounded-full bg-amber-100 text-amber-800">PLUS: +0,0</span>
               </div>
@@ -729,6 +751,7 @@
       document.getElementById('fileInput').addEventListener('change', handleFileUpload);
       document.getElementById('questionSearch').addEventListener('input', filterQuestionOptions);
       document.getElementById('questionSelect').addEventListener('change', updateRegionalView);
+      document.getElementById('companySearch').addEventListener('input', filterCompanyOptions);
       document.getElementById('companySelect').addEventListener('change', updateCompanyView);
       document.getElementById('tableSearch').addEventListener('input', filterTable);
     }
@@ -889,13 +912,7 @@
       renderQuestionOptions(document.getElementById('questionSearch').value);
 
       const cSelect = document.getElementById('companySelect');
-      cSelect.innerHTML = '';
-      Array.from(processedData.companies).sort().forEach(c => {
-        const opt = document.createElement('option');
-        opt.value = c;
-        opt.textContent = c;
-        cSelect.appendChild(opt);
-      });
+      renderCompanyOptions(document.getElementById('companySearch').value);
 
       // Actualizar selectores de Municipio (Filtro lateral y Selector de vista comparativa)
       const sidebarMun = document.getElementById('sidebarMunicipioFilter');
@@ -951,6 +968,43 @@
       }
     }
 
+    function filterCompanyOptions(event) {
+      const companySelect = document.getElementById('companySelect');
+      const currentCompany = companySelect.value;
+      const matchingCompanies = renderCompanyOptions(event.target.value);
+      if (matchingCompanies.length > 0 && companySelect.value !== currentCompany) {
+        updateCompanyView();
+      }
+    }
+
+    function renderCompanyOptions(searchTerm = '') {
+      const companySelect = document.getElementById('companySelect');
+      const currentCompany = companySelect.value;
+      const normalizedSearch = normalizeFilterText(searchTerm);
+      const matchingCompanies = Array.from(processedData.companies)
+        .sort()
+        .filter(company => normalizeFilterText(company).includes(normalizedSearch));
+
+      companySelect.innerHTML = '';
+      matchingCompanies.forEach(company => {
+        const option = document.createElement('option');
+        option.value = company;
+        option.textContent = company;
+        companySelect.appendChild(option);
+      });
+
+      if (matchingCompanies.length > 0) {
+        companySelect.value = matchingCompanies.includes(currentCompany) ? currentCompany : matchingCompanies[0];
+      } else {
+        const option = document.createElement('option');
+        option.textContent = 'No se encontraron empresas';
+        option.disabled = true;
+        companySelect.appendChild(option);
+      }
+
+      return matchingCompanies;
+    }
+
     function updateMunicipalTicker() {
       const tickerContent = document.getElementById('municipalTickerContent');
       tickerContent.innerHTML = '';
@@ -1002,6 +1056,11 @@
       });
       Object.values(MODULE_MAPPING).forEach(module => {
         if (!modules.includes(module)) modules.push(module);
+      });
+      modules.sort((a, b) => {
+        if (a === 'Datos financieros') return -1;
+        if (b === 'Datos financieros') return 1;
+        return 0;
       });
       const container = document.getElementById('moduleNavList');
       container.innerHTML = '';
@@ -1904,8 +1963,8 @@
 
       if (question === 'Áreas organizacionales') {
         if (answerHas(answer, ['área de sostenibilidad'])) return 100;
-        if (answerHas(answer, ['responsabilidad social', 'área ambiental'])) return 80;
-        if (answerHas(answer, ['contratación de terceros', 'terceros'])) return 40;
+        if (answerHas(answer, ['responsabilidad social', 'área ambiental'])) return 70;
+        if (answerHas(answer, ['contratación de terceros', 'terceros'])) return 35;
         return 0;
       }
       if (question === 'Políticas de sostenibilidad') {
@@ -1916,11 +1975,13 @@
         return Math.min(100, (mandatoryCount > 0 ? 40 : 0) + Math.min(60, voluntaryCount * (60 / voluntary.length)));
       }
       if (question === 'Indicadores de sostenibilidad') {
-        return answerHas(answer, ['GRI', 'SASB', 'ISSB', 'IFRS', 'ODS', 'Pacto Global', 'DJSI', 'Ethos', 'FTSE4Good']) ? 100 : 50;
+        if (answerHas(answer, ['en proceso', 'no contamos con dichos indicadores', 'no contamos'])) return 0;
+        if (answerHas(answer, ['GRI', 'SASB', 'ISSB', 'IFRS', 'ODS', 'Pacto Global', 'DJSI', 'Ethos', 'FTSE4Good'])) return 100;
+        return 50;
       }
       if (question === 'Sistema de Gestión Ambiental') {
-        if (answerHas(answer, ['certificado'])) return 100;
         if (answerHas(answer, ['no certificado'])) return 60;
+        if (answerHas(answer, ['certificado'])) return 100;
         return 0;
       }
       if (question === 'Relación con la comunidad') return answerHas(answer, ['plan de relacionamiento', 'corredores sostenibles']) ? 100 : 0;
@@ -1935,15 +1996,37 @@
         if (answerHas(answer, ['definición interna', 'compromisos'])) return 40;
         return 0;
       }
-      if (question === 'Reconocimiento del área de influencia') {
-        if (answerHas(answer, ['menos de 3 años'])) return 100;
-        if (answerHas(answer, ['más de 3 años'])) return 50;
+      if (question === 'Caracterización del área de influencia') {
+        return answerHas(answer, ['sí', 'si', '2023', '2024', '2025', '2026']) && !answerHas(answer, ['no']) ? 100 : 0;
+      }
+      if (question === 'Alineación de la responsabilidad social') {
+        return answerHas(answer, ['ninguna']) ? 0 : 100;
+      }
+      if (question === 'Objetivos de sostenibilidad y ODS') {
+        if (answerHas(answer, ['específicos, medibles y con límite de tiempo', 'especificos, medibles y con limite de tiempo'])) return 100;
+        if (answerHas(answer, ['los tenemos definidos'])) return 50;
         return 0;
       }
-      if (question === 'Participación en construcción colectiva regional') return answerHas(answer, ['impulsa', 'representación CEO', 'participa ocasionalmente']) ? 100 : 0;
-      if (question === 'Revisión de instrumentos de ordenamiento territorial') return answerHas(answer, ['integrados', 'cumplimiento legal']) ? 100 : 0;
+      if (question === 'Rendición de cuentas a grupos de interés') {
+        return answerHas(answer, ['no contamos con dicho mecanismo']) ? 0 : 100;
+      }
+      if (question === 'Gestión de riesgos con actores externos') {
+        return answerHas(answer, ['protocolos articulados con otras empresas']) ? 100 : 0;
+      }
+      if (question === 'Inversión social últimos 5 años') {
+        return answerHas(answer, ['no hemos realizado inversión social', 'ninguna']) ? 0 : 100;
+      }
+      if (question === 'Reconocimiento del área de influencia') {
+        if (answerHas(answer, ['menos de 3 años'])) return 100;
+        if (answerHas(answer, ['más de 3 años', 'más de tres años'])) return 50;
+        return 0;
+      }
+      if (question === 'Participación en construcción colectiva regional') return answerHas(answer, ['impulsa', 'representación CEO', 'a través de CEO', 'participa ocasionalmente']) ? 100 : 0;
+      if (question === 'Revisión de instrumentos de ordenamiento territorial') return answerHas(answer, ['integran a su estrategia', 'integrados', 'cumplimiento legal']) ? 100 : 0;
       if (question === 'Prospectiva territorial en inversiones') return answerHas(answer, ['sí', 'si', 'escenarios futuros']) ? 100 : 0;
-      if (question === 'Formación interna del talento' || question === 'Formación externa del talento') return 100;
+      if (question === 'Formación interna del talento' || question === 'Formación externa del talento') {
+        return answerHas(answer, ['ninguna de las anteriores', 'ninguna']) ? 0 : 100;
+      }
       if (question === 'Formación interna en sostenibilidad') return answerHas(answer, ['sí', 'si']) ? 100 : 10;
       if (question === 'Acciones de sostenibilidad realizadas' || question === 'Acciones de adaptación y mitigación climática') return answerHas(answer, ['ninguna']) ? 0 : 100;
       if (question === 'Beneficios y bienestar laboral') return answerHas(answer, ['sí', 'si', 'estructurado']) ? 100 : 0;
@@ -2027,15 +2110,17 @@
         const total = questions.reduce((sum, question) => sum + scoreSustainabilityQuestion(company, question), 0);
         moduleScores[module] = questions.length > 0 ? total / questions.length : 0;
       });
-      const baseScore = SUSTAINABILITY_MODULES.reduce((sum, module) => sum + moduleScores[module] * 0.25, 0);
+      const moduleWeights = [0.35, 0.30, 0.20, 0.15];
+      const baseScore = SUSTAINABILITY_MODULES.reduce((sum, module, index) => sum + moduleScores[module] * moduleWeights[index], 0);
       const plusScore = calculatePlusScore(company);
       const score = Math.min(100, baseScore + plusScore);
       const pumaGateCount = meetsPumaGates(company);
       const jaguarGates = countJaguarGates(company);
       const jaguarEligible = jaguarGates.mandatoryCount === 2 && jaguarGates.complementaryCount >= 5;
-      const level = score < 50 || pumaGateCount < 4
-        ? 'TIGRILLO'
-        : score < 80 || !jaguarEligible ? 'PUMA' : 'JAGUAR';
+      let level = 'TIGRILLO';
+      if (score >= 50 && (pumaGateCount >= 4 || score >= 80)) {
+        level = score >= 80 && jaguarEligible ? 'JAGUAR' : 'PUMA';
+      }
       return { moduleScores, baseScore, plusScore, score, level, pumaGateCount, jaguarGates, jaguarEligible };
     }
 
@@ -2045,6 +2130,12 @@
       return 'Nivel avanzado: demuestra una gestión de sostenibilidad sólida y capacidad para responder a los retos del entorno.';
     }
 
+    const CATEGORY_IMAGES = {
+      TIGRILLO: 'TIGRILLO.png',
+      PUMA: 'PUMA.png',
+      JAGUAR: 'JAGUAR.png'
+    };
+
     function renderCompanySustainabilityScore(company) {
       const result = calculateCompanySustainability(company);
       const levelEl = document.getElementById('companySustainabilityLevel');
@@ -2052,8 +2143,11 @@
       const descriptionEl = document.getElementById('companySustainabilityDescription');
       const moduleEl = document.getElementById('companyModuleScores');
       const levelColors = { TIGRILLO: 'text-rose-700', PUMA: 'text-amber-700', JAGUAR: 'text-emerald-700' };
+      const categoryImageEl = document.getElementById('companySustainabilityImage');
       levelEl.textContent = result.level;
       levelEl.className = `text-2xl font-extrabold mt-1 ${levelColors[result.level]}`;
+      categoryImageEl.src = CATEGORY_IMAGES[result.level];
+      categoryImageEl.alt = `Categoría ${result.level}`;
       scoreEl.textContent = `${result.score.toFixed(1).replace('.', ',')} / 100 puntos`;
       descriptionEl.textContent = getSustainabilityDescription(result.level);
       if (result.score >= 80 && result.level === 'PUMA') {
@@ -2100,7 +2194,12 @@
           <td class="p-3 font-semibold text-slate-800">${escapeHtml(row.company)}</td>
           <td class="p-3 text-slate-500">${escapeHtml(row.municipality)}</td>
           <td class="p-3 font-bold text-ceo-blue">${row.score.toFixed(1).replace('.', ',')}</td>
-          <td class="p-3 font-bold ${row.level === 'JAGUAR' ? 'text-emerald-700' : row.level === 'PUMA' ? 'text-amber-700' : 'text-rose-700'}">${row.level}</td>
+          <td class="p-3">
+            <div class="flex items-center gap-2">
+              <img src="${CATEGORY_IMAGES[row.level]}" alt="${row.level}" class="w-10 h-10 object-contain flex-shrink-0">
+              <span class="font-bold ${row.level === 'JAGUAR' ? 'text-emerald-700' : row.level === 'PUMA' ? 'text-amber-700' : 'text-rose-700'}">${row.level}</span>
+            </div>
+          </td>
           <td class="p-3 text-slate-600">${SUSTAINABILITY_MODULES.map(module => `${escapeHtml(module)}: ${row.moduleScores[module].toFixed(1).replace('.', ',')}`).join(' | ')}</td>
         </tr>
       `).join('');
