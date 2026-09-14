@@ -1969,6 +1969,57 @@
       return Math.min(10, plus);
     }
 
+    function isAffirmativeAnswer(answer) {
+      const normalized = normalizeFilterText(answer);
+      return normalized === 'si' || normalized.startsWith('si;') || normalized.startsWith('si,');
+    }
+
+    function meetsPumaGates(company) {
+      const matrix = processedData.matrix[company] || {};
+      const organizationAnswer = normalizeFilterText(matrix['Áreas organizacionales']);
+      const policyAnswer = normalizeFilterText(matrix['Políticas de sostenibilidad']);
+      const indicatorAnswer = normalizeFilterText(matrix['Indicadores de sostenibilidad']);
+      const sgaAnswer = normalizeFilterText(matrix['Sistema de Gestión Ambiental']);
+      const hasOrganization = ['area de sostenibilidad', 'area ambiental', 'area de responsabilidad social', 'contratacion de un tercero para asuntos ambientales']
+        .some(term => organizationAnswer.includes(term));
+      const hasSeparateRequiredPolicies = policyAnswer.includes('politica de seguridad y salud en el trabajo') && policyAnswer.includes('politica de asuntos ambientales');
+      const hasIntegratedManagementPolicy = policyAnswer.includes('sistema integrado de gestion') || (
+        policyAnswer.includes('sig') &&
+        policyAnswer.includes('seguridad') &&
+        policyAnswer.includes('ambient')
+      );
+      const hasRequiredPolicies = hasSeparateRequiredPolicies || hasIntegratedManagementPolicy;
+      const hasIndicators = indicatorAnswer.includes('indicadores de consumo de recursos') || ['gri', 'sasb', 'issb', 'ods', 'pacto global', 'djsi', 'ethos', 'ftse4good']
+        .some(term => indicatorAnswer.includes(term));
+      const hasStructuredSga = (sgaAnswer.includes('sga certificado') || sgaAnswer.includes('sga no certificado')) && !sgaAnswer.includes('no contamos');
+      return [hasOrganization, hasRequiredPolicies, hasIndicators, hasStructuredSga].filter(Boolean).length;
+    }
+
+    function countJaguarGates(company) {
+      const matrix = processedData.matrix[company] || {};
+      const territoryAnswer = normalizeFilterText(matrix['Estrategia social en territorio']);
+      const odsAnswer = normalizeFilterText(matrix['Objetivos de sostenibilidad y ODS']);
+      const territorialPlanningAnswer = normalizeFilterText(matrix['Revisión de instrumentos de ordenamiento territorial']);
+      const mandatoryGates = [
+        isAffirmativeAnswer(matrix['Análisis de materialidad']),
+        isAffirmativeAnswer(matrix['Informe de sostenibilidad'])
+      ];
+      const complementaryGates = [
+        isAffirmativeAnswer(matrix['Medición de Huella de Carbono']),
+        Boolean(territoryAnswer) && !territoryAnswer.includes('no aplica'),
+        isAffirmativeAnswer(matrix['Presupuesto ambiental y social']),
+        odsAnswer.includes('especificos, medibles y con limite de tiempo'),
+        isAffirmativeAnswer(matrix['Sostenibilidad en compras, ventas y contratación']),
+        isAffirmativeAnswer(matrix['Cambio climático en la estrategia']),
+        territorialPlanningAnswer.includes('integra a su estrategia de planificacion'),
+        isAffirmativeAnswer(matrix['Plan de continuidad del negocio'])
+      ];
+      return {
+        mandatoryCount: mandatoryGates.filter(Boolean).length,
+        complementaryCount: complementaryGates.filter(Boolean).length
+      };
+    }
+
     function calculateCompanySustainability(company) {
       const moduleScores = {};
       SUSTAINABILITY_MODULES.forEach(module => {
@@ -1979,8 +2030,13 @@
       const baseScore = SUSTAINABILITY_MODULES.reduce((sum, module) => sum + moduleScores[module] * 0.25, 0);
       const plusScore = calculatePlusScore(company);
       const score = Math.min(100, baseScore + plusScore);
-      const level = score < 40 ? 'TIGRILLO' : score < 70 ? 'PUMA' : 'JAGUAR';
-      return { moduleScores, baseScore, plusScore, score, level };
+      const pumaGateCount = meetsPumaGates(company);
+      const jaguarGates = countJaguarGates(company);
+      const jaguarEligible = jaguarGates.mandatoryCount === 2 && jaguarGates.complementaryCount >= 5;
+      const level = score < 50 || pumaGateCount < 4
+        ? 'TIGRILLO'
+        : score < 80 || !jaguarEligible ? 'PUMA' : 'JAGUAR';
+      return { moduleScores, baseScore, plusScore, score, level, pumaGateCount, jaguarGates, jaguarEligible };
     }
 
     function getSustainabilityDescription(level) {
@@ -2000,6 +2056,11 @@
       levelEl.className = `text-2xl font-extrabold mt-1 ${levelColors[result.level]}`;
       scoreEl.textContent = `${result.score.toFixed(1).replace('.', ',')} / 100 puntos`;
       descriptionEl.textContent = getSustainabilityDescription(result.level);
+      if (result.score >= 80 && result.level === 'PUMA') {
+        descriptionEl.textContent += ` Categoría limitada por candados Jaguar: ${result.jaguarGates.mandatoryCount}/2 condiciones obligatorias y ${result.jaguarGates.complementaryCount}/8 requisitos complementarios (se requieren 2 y 5).`;
+      } else if (result.score >= 50 && result.pumaGateCount < 4) {
+        descriptionEl.textContent += ` Categoría limitada por requisitos mínimos Puma: ${result.pumaGateCount}/4 cumplidos.`;
+      }
       document.getElementById('companyPlusScore').textContent = `PLUS: +${result.plusScore.toFixed(1).replace('.', ',')}`;
       moduleEl.innerHTML = SUSTAINABILITY_MODULES.map(module => `
         <div class="bg-slate-50 border border-slate-200 rounded-lg p-2.5">
