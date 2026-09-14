@@ -393,16 +393,31 @@
           <div id="companySummaryPanel" class="hidden space-y-4">
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div class="glass-card rounded-xl p-4 shadow-sm border-l-4 border-rose-500">
-                <p class="text-[11px] font-bold text-slate-500 uppercase">TIGRILLO · Nivel bajo</p>
-                <h4 id="companySummaryTigrillo" class="text-xl font-extrabold text-rose-700 mt-1">0 · 0%</h4>
+                <div class="flex items-center gap-3">
+                  <img src="TIGRILLO.png" alt="Tigrillo" class="w-16 h-16 object-contain flex-shrink-0">
+                  <div>
+                    <p class="text-[11px] font-bold text-slate-500 uppercase">TIGRILLO · Nivel bajo</p>
+                    <h4 id="companySummaryTigrillo" class="text-xl font-extrabold text-rose-700 mt-1">0 · 0%</h4>
+                  </div>
+                </div>
               </div>
               <div class="glass-card rounded-xl p-4 shadow-sm border-l-4 border-amber-500">
-                <p class="text-[11px] font-bold text-slate-500 uppercase">PUMA · Nivel medio</p>
-                <h4 id="companySummaryPuma" class="text-xl font-extrabold text-amber-700 mt-1">0 · 0%</h4>
+                <div class="flex items-center gap-3">
+                  <img src="PUMA.png" alt="Puma" class="w-16 h-16 object-contain flex-shrink-0">
+                  <div>
+                    <p class="text-[11px] font-bold text-slate-500 uppercase">PUMA · Nivel medio</p>
+                    <h4 id="companySummaryPuma" class="text-xl font-extrabold text-amber-700 mt-1">0 · 0%</h4>
+                  </div>
+                </div>
               </div>
               <div class="glass-card rounded-xl p-4 shadow-sm border-l-4 border-emerald-500">
-                <p class="text-[11px] font-bold text-slate-500 uppercase">JAGUAR · Nivel avanzado</p>
-                <h4 id="companySummaryJaguar" class="text-xl font-extrabold text-emerald-700 mt-1">0 · 0%</h4>
+                <div class="flex items-center gap-3">
+                  <img src="JAGUAR.png" alt="Jaguar" class="w-16 h-16 object-contain flex-shrink-0">
+                  <div>
+                    <p class="text-[11px] font-bold text-slate-500 uppercase">JAGUAR · Nivel avanzado</p>
+                    <h4 id="companySummaryJaguar" class="text-xl font-extrabold text-emerald-700 mt-1">0 · 0%</h4>
+                  </div>
+                </div>
               </div>
             </div>
             <div class="glass-card rounded-xl p-6 shadow-sm space-y-4">
@@ -429,10 +444,13 @@
           <div class="grid grid-cols-1 lg:grid-cols-[1.1fr_2fr] gap-4">
             <div class="glass-card rounded-xl p-5 shadow-sm border-l-4 border-ceo-green">
               <div class="flex items-start justify-between gap-3">
-                <div>
-                  <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Nivel de sostenibilidad</p>
-                  <h3 id="companySustainabilityLevel" class="text-2xl font-extrabold text-slate-800 mt-1">—</h3>
-                  <p id="companySustainabilityScore" class="text-sm font-bold text-ceo-green mt-1">0,0 / 100 puntos</p>
+                <div class="flex items-center gap-3 min-w-0">
+                  <img id="companySustainabilityImage" src="TIGRILLO.png" alt="Categoría de sostenibilidad" class="w-20 h-20 object-contain flex-shrink-0">
+                  <div>
+                    <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Nivel de sostenibilidad</p>
+                    <h3 id="companySustainabilityLevel" class="text-2xl font-extrabold text-slate-800 mt-1">—</h3>
+                    <p id="companySustainabilityScore" class="text-sm font-bold text-ceo-green mt-1">0,0 / 100 puntos</p>
+                  </div>
                 </div>
                 <div class="p-3 bg-emerald-50 rounded-lg text-ceo-green">
                   <i data-lucide="leaf" class="w-6 h-6"></i>
@@ -2045,6 +2063,12 @@
       return 'Nivel avanzado: demuestra una gestión de sostenibilidad sólida y capacidad para responder a los retos del entorno.';
     }
 
+    const CATEGORY_IMAGES = {
+      TIGRILLO: 'TIGRILLO.png',
+      PUMA: 'PUMA.png',
+      JAGUAR: 'JAGUAR.png'
+    };
+
     function renderCompanySustainabilityScore(company) {
       const result = calculateCompanySustainability(company);
       const levelEl = document.getElementById('companySustainabilityLevel');
@@ -2052,8 +2076,11 @@
       const descriptionEl = document.getElementById('companySustainabilityDescription');
       const moduleEl = document.getElementById('companyModuleScores');
       const levelColors = { TIGRILLO: 'text-rose-700', PUMA: 'text-amber-700', JAGUAR: 'text-emerald-700' };
+      const categoryImageEl = document.getElementById('companySustainabilityImage');
       levelEl.textContent = result.level;
       levelEl.className = `text-2xl font-extrabold mt-1 ${levelColors[result.level]}`;
+      categoryImageEl.src = CATEGORY_IMAGES[result.level];
+      categoryImageEl.alt = `Categoría ${result.level}`;
       scoreEl.textContent = `${result.score.toFixed(1).replace('.', ',')} / 100 puntos`;
       descriptionEl.textContent = getSustainabilityDescription(result.level);
       if (result.score >= 80 && result.level === 'PUMA') {
@@ -2100,7 +2127,12 @@
           <td class="p-3 font-semibold text-slate-800">${escapeHtml(row.company)}</td>
           <td class="p-3 text-slate-500">${escapeHtml(row.municipality)}</td>
           <td class="p-3 font-bold text-ceo-blue">${row.score.toFixed(1).replace('.', ',')}</td>
-          <td class="p-3 font-bold ${row.level === 'JAGUAR' ? 'text-emerald-700' : row.level === 'PUMA' ? 'text-amber-700' : 'text-rose-700'}">${row.level}</td>
+          <td class="p-3">
+            <div class="flex items-center gap-2">
+              <img src="${CATEGORY_IMAGES[row.level]}" alt="${row.level}" class="w-10 h-10 object-contain flex-shrink-0">
+              <span class="font-bold ${row.level === 'JAGUAR' ? 'text-emerald-700' : row.level === 'PUMA' ? 'text-amber-700' : 'text-rose-700'}">${row.level}</span>
+            </div>
+          </td>
           <td class="p-3 text-slate-600">${SUSTAINABILITY_MODULES.map(module => `${escapeHtml(module)}: ${row.moduleScores[module].toFixed(1).replace('.', ',')}`).join(' | ')}</td>
         </tr>
       `).join('');
