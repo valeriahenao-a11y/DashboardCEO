@@ -504,6 +504,13 @@
                 <select id="sustainableCompanySelect" onchange="updateSustainableModelView()" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-800 focus:ring-2 focus:ring-ceo-green focus:outline-none transition-all"></select>
               </div>
               <div class="flex flex-wrap gap-2">
+                <button id="sustainableVisitFilterButton" onclick="toggleSustainableVisitFilter()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-3 py-2.5 rounded-lg shadow-sm transition-all flex items-center space-x-2" aria-pressed="false">
+                  <i data-lucide="clipboard-check" class="w-4 h-4"></i><span>Mostrar empresas con visita</span>
+                </button>
+                <label for="sustainableVisitNotesInput" class="cursor-pointer bg-ceo-green hover:bg-emerald-600 text-white text-xs font-semibold px-3 py-2.5 rounded-lg shadow-sm transition-all flex items-center space-x-2">
+                  <i data-lucide="notebook-pen" class="w-4 h-4"></i><span id="sustainableVisitNotesLabel">Cargar apuntes de visita</span>
+                </label>
+                <input id="sustainableVisitNotesInput" type="file" accept=".xlsx,.xls,.csv" class="hidden" onclick="this.value = ''">
                 <label for="sustainableInventoryInput" class="cursor-pointer bg-ceo-green hover:bg-emerald-600 text-white text-xs font-semibold px-3 py-2.5 rounded-lg shadow-sm transition-all flex items-center space-x-2">
                   <i data-lucide="upload" class="w-4 h-4"></i><span id="sustainableInventoryLabel">Cargar inventario</span>
                 </label>
@@ -800,6 +807,20 @@
     let moduleChartData = {};
     let sustainableInventory = { companies: new Set(), services: [], matrix: {}, fileName: '' };
     let sustainableAnalysis = null;
+    let sustainableVisitFilterActive = false;
+    let sustainableVisitNotes = {};
+    const SUSTAINABLE_VISIT_COMPANIES = new Set([
+      'Natura Cosmeticos',
+      'Inmunizadora Rionegro S.A.S',
+      'Industrias Setimec S.A.S',
+      'Compañía Nacional de Chocolates',
+      'Proquident S.A.S',
+      'Rotoplast S.A.S',
+      'Industrias Cadi S.A.S',
+      'SI3',
+      'Smurfit Westrock (Cartón de Colombia)',
+      'MCM Company S.A.S'
+    ]);
     const ceoColors = ['#8B5CF6', '#002E5B', '#F59E0B', '#248A3D', '#124090', '#5EB839', '#0A192F', '#38BDF8', '#EC4899', '#14B8A6'];
     
     Chart.register(ChartDataLabels);
@@ -814,6 +835,7 @@
     function setupEventListeners() {
       document.getElementById('fileInput').addEventListener('change', handleFileUpload);
       document.getElementById('sustainableInventoryInput').addEventListener('change', handleSustainableInventoryUpload);
+      document.getElementById('sustainableVisitNotesInput').addEventListener('change', handleSustainableVisitNotesUpload);
       document.getElementById('questionSearch').addEventListener('input', filterQuestionOptions);
       document.getElementById('questionSelect').addEventListener('change', updateRegionalView);
       document.getElementById('companySearch').addEventListener('input', filterCompanyOptions);
@@ -970,6 +992,87 @@
       reader.readAsArrayBuffer(file);
     }
 
+    function handleSustainableVisitNotesUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      document.getElementById('sustainableVisitNotesLabel').textContent = 'Procesando...';
+      const reader = new FileReader();
+      reader.onload = function(loadEvent) {
+        try {
+          const workbook = XLSX.read(new Uint8Array(loadEvent.target.result), { type: 'array' });
+          processSustainableVisitNotes(workbook, file.name);
+          document.getElementById('sustainableVisitNotesLabel').textContent = 'Cambiar apuntes de visita';
+        } catch (error) {
+          console.error(error);
+          document.getElementById('sustainableVisitNotesLabel').textContent = 'Cargar apuntes de visita';
+          showSustainableNotice('No fue posible leer los apuntes. Cada hoja debe tener las columnas Pregunta del diagnóstico y Observaciones de la visita.', 'bg-red-600');
+        }
+      };
+      reader.onerror = () => showSustainableNotice('No fue posible leer el archivo seleccionado.', 'bg-red-600');
+      reader.readAsArrayBuffer(file);
+    }
+
+    function getSustainableVisitCompany(company) {
+      const normalized = normalizeSustainableCompany(company);
+      return Array.from(SUSTAINABLE_VISIT_COMPANIES).find(item => normalizeSustainableCompany(item) === normalized) || null;
+    }
+
+    function getSustainableNotesHeaderIndex(header, terms) {
+      return header.findIndex(cell => terms.some(term => normalizeFilterText(cell).includes(term)));
+    }
+
+    function processSustainableVisitNotes(workbook, fileName) {
+      const notes = {};
+      let processedSheets = 0;
+      workbook.SheetNames.forEach(sheetName => {
+        const companyName = cleanText(sheetName);
+        if (!companyName) return;
+        const company = getSustainableVisitCompany(companyName) || companyName;
+        SUSTAINABLE_VISIT_COMPANIES.add(company);
+        const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { header: 1, defval: '' });
+        const header = rows[0] || [];
+        const questionIndex = getSustainableNotesHeaderIndex(header, ['pregunta del diagnostico', 'pregunta', 'variable', 'aspecto']);
+        const noteIndex = getSustainableNotesHeaderIndex(header, ['observaciones de la visita', 'observacion de la visita', 'observaciones', 'observacion', 'apunte', 'nota', 'comentario']);
+        if (questionIndex < 0 || noteIndex < 0) return;
+        processedSheets++;
+        const companyKey = normalizeSustainableCompany(company);
+        if (!notes[companyKey]) notes[companyKey] = {};
+        for (let row = 1; row < rows.length; row++) {
+          const question = cleanText(rows[row][questionIndex]);
+          const note = cleanText(rows[row][noteIndex]);
+          if (question && note) notes[companyKey][normalizeFilterText(question)] = note;
+        }
+      });
+      if (!processedSheets) throw new Error('Formato de apuntes no reconocido');
+      sustainableVisitNotes = notes;
+      renderSustainableVisitNotesState(fileName);
+      if (sustainableAnalysis) updateSustainableModelView();
+    }
+
+    function getSustainableVisitNote(company, question) {
+      return sustainableVisitNotes[normalizeSustainableCompany(company)]?.[normalizeFilterText(question)] || '';
+    }
+
+    function renderSustainableVisitNotesState(fileName = '') {
+      const status = document.getElementById('sustainableModelStatus');
+      if (status && fileName) status.textContent = `${fileName} cargado: apuntes de visita disponibles para las empresas registradas.`;
+    }
+
+    function toggleSustainableVisitFilter() {
+      sustainableVisitFilterActive = !sustainableVisitFilterActive;
+      const button = document.getElementById('sustainableVisitFilterButton');
+      if (button) {
+        button.setAttribute('aria-pressed', String(sustainableVisitFilterActive));
+        button.classList.toggle('bg-ceo-blue', sustainableVisitFilterActive);
+        button.classList.toggle('text-white', sustainableVisitFilterActive);
+        button.classList.toggle('bg-slate-100', !sustainableVisitFilterActive);
+        button.classList.toggle('text-slate-700', !sustainableVisitFilterActive);
+        button.querySelector('span').textContent = sustainableVisitFilterActive ? 'Mostrar todas las empresas' : 'Mostrar empresas con visita';
+      }
+      populateSustainableCompanyOptions();
+      if (document.getElementById('sustainableCompanySelect').value) updateSustainableModelView();
+    }
+
     function processSustainableInventory(rows, fileName) {
       const header = rows[0] || [];
       const companies = new Set();
@@ -1018,6 +1121,7 @@
       const usage = inventoryCompany ? sustainableInventory.matrix[inventoryCompany] || {} : {};
       const usedServices = sustainableInventory.services.filter(item => isSustainableYes(usage[item.service]));
       const moduleFindings = {};
+      const visitNotes = [];
       const recommendations = [];
       const result = typeof calculateCompanySustainability === 'function' ? calculateCompanySustainability(company) : { score: 0, level: 'TIGRILLO', moduleScores: {} };
 
@@ -1026,8 +1130,12 @@
         moduleFindings[module] = questions.map(question => ({
           question,
           answer: processedData.matrix[company]?.[question] || 'Sin Respuesta',
+          note: getSustainableVisitNote(company, question),
           score: typeof scoreSustainabilityQuestion === 'function' ? scoreSustainabilityQuestion(company, question) : 0
-        })).filter(item => item.score < 70);
+        })).filter(item => {
+          if (item.note) visitNotes.push({ module, question: item.question, note: item.note });
+          return item.score < 70;
+        });
       });
 
       sustainableInventory.services.forEach(item => {
@@ -1040,7 +1148,7 @@
         }
       });
 
-      return { company, inventoryCompany, usedServices, moduleFindings, recommendations, score: result.score, level: result.level, moduleScores: result.moduleScores };
+      return { company, inventoryCompany, usedServices, moduleFindings, visitNotes, recommendations, score: result.score, level: result.level, moduleScores: result.moduleScores };
     }
 
     function populateSustainableCompanyOptions() {
@@ -1048,13 +1156,22 @@
       if (!select || processedData.companies.size === 0) return;
       const current = select.value;
       select.innerHTML = '';
-      Array.from(processedData.companies).sort().forEach(company => {
+      const companies = Array.from(processedData.companies)
+        .filter(company => !sustainableVisitFilterActive || getSustainableVisitCompany(company))
+        .sort();
+      companies.forEach(company => {
         const option = document.createElement('option');
         option.value = company;
         option.textContent = company;
         select.appendChild(option);
       });
-      if (processedData.companies.has(current)) select.value = current;
+      if (companies.includes(current)) select.value = current;
+      if (!companies.length) {
+        const option = document.createElement('option');
+        option.textContent = 'No hay empresas con visita en el diagnóstico';
+        option.disabled = true;
+        select.appendChild(option);
+      }
     }
 
     function renderSustainableInventoryState() {
@@ -1092,7 +1209,7 @@
       const sections = SUSTAINABILITY_MODULES.map(module => {
         const findings = analysis.moduleFindings[module] || [];
         if (!findings.length) return '';
-        return `<div class="border-l-4 border-amber-400 bg-slate-50 p-3 rounded-r-lg"><p class="text-xs font-bold text-ceo-blue">${escapeHtml(module)}</p>${findings.slice(0, 8).map(item => `<p class="text-xs text-slate-700 mt-2"><strong>${escapeHtml(item.question)}</strong> · ${item.score.toFixed(0)}/100<br><span class="text-slate-500">Respuesta: ${escapeHtml(item.answer)}</span></p>`).join('')}</div>`;
+        return `<div class="border-l-4 border-amber-400 bg-slate-50 p-3 rounded-r-lg"><p class="text-xs font-bold text-ceo-blue">${escapeHtml(module)}</p>${findings.slice(0, 8).map(item => `<p class="text-xs text-slate-700 mt-2"><strong>${escapeHtml(item.question)}</strong> · ${item.score.toFixed(0)}/100<br><span class="text-slate-500">Respuesta: ${escapeHtml(item.answer)}</span>${item.note ? `<br><span class="text-ceo-green"><strong>Apunte de visita:</strong> ${escapeHtml(item.note)}</span>` : ''}</p>`).join('')}</div>`;
       }).join('');
       container.innerHTML = sections || '<p class="text-xs text-slate-500">No se identificaron brechas priorizadas.</p>';
     }
@@ -1121,7 +1238,7 @@
         style: options.style,
         alignment: options.alignment,
         spacing: { after: options.after || 160, line: 276 },
-        children: [new docx.TextRun({ text, bold: options.bold, color: options.color, size: options.size || 22 })]
+        children: [new docx.TextRun({ text, bold: options.bold, color: options.color, size: 22, font: 'Century Gothic' })]
       });
     }
 
@@ -1129,7 +1246,7 @@
       return new docx.Paragraph({
         heading: level === 1 ? docx.HeadingLevel.HEADING_1 : docx.HeadingLevel.HEADING_2,
         spacing: { before: 300, after: 150 },
-        children: [new docx.TextRun({ text, bold: true, color: level === 1 ? '002E5B' : '248A3D', size: level === 1 ? 28 : 24 })]
+        children: [new docx.TextRun({ text, bold: true, color: level === 1 ? '002E5B' : '248A3D', size: 22, font: 'Century Gothic' })]
       });
     }
 
@@ -1137,7 +1254,7 @@
       return new docx.Paragraph({
         bullet: { level: 0 },
         spacing: { after: 100, line: 276 },
-        children: [new docx.TextRun({ text, size: 21, color: '243B53' })]
+        children: [new docx.TextRun({ text, size: 22, font: 'Century Gothic', color: '243B53' })]
       });
     }
 
@@ -1147,10 +1264,38 @@
         rows: rows.map((row, index) => new docx.TableRow({
           children: row.map(cell => new docx.TableCell({
             shading: { fill: index === 0 ? '002E5B' : 'F4F7FA' },
-            children: [new docx.Paragraph({ children: [new docx.TextRun({ text: String(cell), bold: index === 0, color: index === 0 ? 'FFFFFF' : '243B53', size: 19 })] })]
+            children: [new docx.Paragraph({ children: [new docx.TextRun({ text: String(cell), bold: index === 0, color: index === 0 ? 'FFFFFF' : '243B53', size: 22, font: 'Century Gothic' })] })]
           }))
         }))
       });
+    }
+
+    function sustainableReportBackground(data) {
+      if (!data) return null;
+      return new docx.Header({
+        children: [new docx.Paragraph({
+          children: [new docx.ImageRun({
+            data,
+            transformation: { width: 816, height: 1056 },
+            floating: {
+              horizontalPosition: { align: docx.HorizontalPositionAlign.CENTER },
+              verticalPosition: { align: docx.VerticalPositionAlign.CENTER },
+              wrap: { type: docx.TextWrappingType.NONE },
+              behindDocument: true
+            }
+          })]
+        })]
+      });
+    }
+
+    function sustainableReportSection(children, backgroundData) {
+      const section = {
+        properties: { page: { margin: { top: 850, right: 850, bottom: 850, left: 850 } } },
+        children
+      };
+      const background = sustainableReportBackground(backgroundData);
+      if (background) section.headers = { default: background };
+      return section;
     }
 
     async function downloadSustainableReportDocx() {
@@ -1163,21 +1308,26 @@
         return;
       }
       const analysis = sustainableAnalysis;
-      const imageData = await getSustainableReportImage('Modelo de Gestión Empresarial Sostenible CEO.png');
-      const children = [];
-      children.push(new docx.Paragraph({ alignment: docx.AlignmentType.CENTER, spacing: { before: 900, after: 180 }, children: [new docx.TextRun({ text: 'MODELO DE GESTIÓN EMPRESARIAL SOSTENIBLE CEO', bold: true, color: '002E5B', size: 34 })] }));
-      children.push(new docx.Paragraph({ alignment: docx.AlignmentType.CENTER, spacing: { after: 250 }, children: [new docx.TextRun({ text: 'Informe de hallazgos, brechas y oportunidades de mejora', color: '248A3D', size: 25 })] }));
-      if (imageData) children.push(new docx.Paragraph({ alignment: docx.AlignmentType.CENTER, children: [new docx.ImageRun({ data: imageData, transformation: { width: 620, height: 398 } })] }));
-      children.push(new docx.Paragraph({ alignment: docx.AlignmentType.CENTER, spacing: { before: 250, after: 120 }, children: [new docx.TextRun({ text: analysis.company, bold: true, color: '002E5B', size: 30 })] }));
-      children.push(sustainableReportParagraph(`Categoría alcanzada: ${analysis.level} · ${analysis.score.toFixed(1).replace('.', ',')} / 100 puntos`, { alignment: docx.AlignmentType.CENTER, bold: true, color: '248A3D', size: 24 }));
-      children.push(sustainableReportParagraph('Corporación Empresarial del Oriente Antioqueño', { alignment: docx.AlignmentType.CENTER, color: '607D8B', size: 20 }));
-      children.push(new docx.Paragraph({ children: [new docx.PageBreak()] }));
+      const [coverData, intermediateData, intermediateClosingData, finalData] = await Promise.all([
+        getSustainableReportImage('Portada.png'),
+        getSustainableReportImage('hojas de intermedio.png'),
+        getSustainableReportImage('hojas de intermedio (2).png'),
+        getSustainableReportImage('Hoja final.png')
+      ]);
+      const coverChildren = [];
+      coverChildren.push(new docx.Paragraph({ alignment: docx.AlignmentType.CENTER, spacing: { before: 900, after: 180 }, children: [new docx.TextRun({ text: 'MODELO DE GESTIÓN EMPRESARIAL SOSTENIBLE CEO', bold: true, color: '002E5B', size: 22, font: 'Century Gothic' })] }));
+      coverChildren.push(new docx.Paragraph({ alignment: docx.AlignmentType.CENTER, spacing: { after: 250 }, children: [new docx.TextRun({ text: 'Informe de hallazgos, brechas y oportunidades de mejora', color: '248A3D', size: 22, font: 'Century Gothic' })] }));
+      coverChildren.push(new docx.Paragraph({ alignment: docx.AlignmentType.CENTER, spacing: { before: 250, after: 120 }, children: [new docx.TextRun({ text: analysis.company, bold: true, color: '002E5B', size: 22, font: 'Century Gothic' })] }));
+      coverChildren.push(sustainableReportParagraph(`Categoría alcanzada: ${analysis.level} · ${analysis.score.toFixed(1).replace('.', ',')} / 100 puntos`, { alignment: docx.AlignmentType.CENTER, bold: true, color: '248A3D' }));
+      coverChildren.push(sustainableReportParagraph('Corporación Empresarial del Oriente Antioqueño', { alignment: docx.AlignmentType.CENTER, color: '607D8B' }));
 
-      children.push(sustainableReportHeading('1. Introducción'));
-      children.push(sustainableReportParagraph(`El presente informe recoge los principales hallazgos del Diagnóstico de Sostenibilidad CEO realizado a ${analysis.company} y los relaciona con los servicios disponibles en el Modelo de Gestión Empresarial Sostenible CEO. El propósito es identificar prioridades, retos y oportunidades que orienten acciones de valor compartido, fortalezcan los programas y macroproyectos de la Corporación y contribuyan a consolidar una empresa más competitiva, resiliente y comprometida con el desarrollo sostenible del territorio.`));
-      children.push(sustainableReportParagraph(`El cruce considera las respuestas registradas en el diagnóstico, el nivel de madurez resultante y el inventario de servicios cargado (${sustainableInventory.fileName || 'inventario de servicios CEO'}). Las recomendaciones son una agenda de conversación y deben validarse con la organización antes de definir un plan de trabajo.`));
+      const intermediateChildren = [];
 
-      children.push(sustainableReportHeading('2. Hallazgos principales y oportunidades de mejora'));
+      intermediateChildren.push(sustainableReportHeading('1. Introducción'));
+      intermediateChildren.push(sustainableReportParagraph(`El presente informe recoge los principales hallazgos del Diagnóstico de Sostenibilidad CEO realizado a ${analysis.company} y los relaciona con los servicios disponibles en el Modelo de Gestión Empresarial Sostenible CEO. El propósito es identificar prioridades, retos y oportunidades que orienten acciones de valor compartido, fortalezcan los programas y macroproyectos de la Corporación y contribuyan a consolidar una empresa más competitiva, resiliente y comprometida con el desarrollo sostenible del territorio.`));
+      intermediateChildren.push(sustainableReportParagraph(`El cruce considera las respuestas registradas en el diagnóstico, el nivel de madurez resultante y el inventario de servicios cargado (${sustainableInventory.fileName || 'inventario de servicios CEO'}). Las recomendaciones son una agenda de conversación y deben validarse con la organización antes de definir un plan de trabajo.`));
+
+      intermediateChildren.push(sustainableReportHeading('2. Hallazgos principales y oportunidades de mejora'));
       const moduleSections = [
         'Gestión Ambiental, Simbiosis Empresarial y Desarrollo Regenerativo',
         'Gestión Social, Talento Humano y Desarrollo Territorial',
@@ -1185,44 +1335,57 @@
         'Innovación, Investigación y Eficiencia Operativa'
       ];
       moduleSections.forEach((module, index) => {
-        children.push(sustainableReportHeading(`2.${index + 1}. ${module}`, 2));
+        intermediateChildren.push(sustainableReportHeading(`2.${index + 1}. ${module}`, 2));
         const findings = analysis.moduleFindings[module] || [];
         if (!findings.length) {
-          children.push(sustainableReportParagraph('No se identificaron brechas prioritarias con la información disponible para este módulo.'));
+          intermediateChildren.push(sustainableReportParagraph('No se identificaron brechas prioritarias con la información disponible para este módulo.'));
           return;
         }
-        children.push(sustainableReportParagraph(`Se identifican ${findings.length} aspectos con oportunidad de fortalecimiento. Estos resultados deben leerse junto con el contexto y las prioridades estratégicas de la empresa.`));
-        children.push(sustainableReportTable([['Variable evaluada', 'Respuesta registrada', 'Nivel'], ...findings.slice(0, 12).map(item => [item.question, item.answer, `${item.score.toFixed(0)} / 100`])]));
+        intermediateChildren.push(sustainableReportParagraph(`Se identifican ${findings.length} aspectos con oportunidad de fortalecimiento. Estos resultados deben leerse junto con el contexto y las prioridades estratégicas de la empresa.`));
+        intermediateChildren.push(sustainableReportTable([['Variable evaluada', 'Respuesta registrada', 'Apunte de visita', 'Nivel'], ...findings.slice(0, 12).map(item => [item.question, item.answer, item.note || '', `${item.score.toFixed(0)} / 100`])]));
         const related = analysis.recommendations.filter(item => item.findings.some(finding => findings.some(current => current.question === finding.question)));
         if (related.length) {
-          children.push(sustainableReportParagraph('Oportunidades de articulación CEO:', { bold: true, color: '002E5B', after: 80 }));
-          related.slice(0, 8).forEach(item => children.push(sustainableReportBullet(`${item.service} (${item.line})`)));
+          intermediateChildren.push(sustainableReportParagraph('Oportunidades de articulación CEO:', { bold: true, color: '002E5B', after: 80 }));
+          related.slice(0, 8).forEach(item => intermediateChildren.push(sustainableReportBullet(`${item.service} (${item.line})`)));
         }
       });
 
-      children.push(sustainableReportHeading('3. Recomendaciones generales'));
+      const closingChildren = [];
+      closingChildren.push(sustainableReportHeading('3. Recomendaciones generales'));
       if (analysis.recommendations.length) {
-        analysis.recommendations.slice(0, 15).forEach(item => children.push(sustainableReportBullet(`Priorizar la conversación sobre ${item.service}, servicio asociado a ${item.line}, por su relación con las brechas identificadas.`)));
+        analysis.recommendations.slice(0, 15).forEach(item => closingChildren.push(sustainableReportBullet(`Priorizar la conversación sobre ${item.service}, servicio asociado a ${item.line}, por su relación con las brechas identificadas.`)));
       } else {
-        children.push(sustainableReportParagraph('Mantener el seguimiento de los compromisos de sostenibilidad y validar nuevas oportunidades de acompañamiento con la Corporación.'));
+        closingChildren.push(sustainableReportParagraph('Mantener el seguimiento de los compromisos de sostenibilidad y validar nuevas oportunidades de acompañamiento con la Corporación.'));
       }
-      children.push(sustainableReportParagraph(`Actualmente se registran ${analysis.usedServices.length} servicios CEO utilizados por la empresa. Se recomienda revisar periódicamente la evolución de las brechas y actualizar el inventario de servicios para mantener vigente la ruta de acompañamiento.`));
-      children.push(new docx.Paragraph({ children: [new docx.PageBreak()] }));
+      closingChildren.push(sustainableReportParagraph(`Actualmente se registran ${analysis.usedServices.length} servicios CEO utilizados por la empresa. Se recomienda revisar periódicamente la evolución de las brechas y actualizar el inventario de servicios para mantener vigente la ruta de acompañamiento.`));
+      if (analysis.visitNotes.length) {
+        closingChildren.push(sustainableReportHeading('4. Apuntes de visita de verificación'));
+        closingChildren.push(sustainableReportTable([
+          ['Módulo', 'Pregunta', 'Apunte registrado'],
+          ...analysis.visitNotes.map(item => [item.module, item.question, item.note])
+        ]));
+      }
 
-      children.push(new docx.Paragraph({ alignment: docx.AlignmentType.CENTER, spacing: { before: 700, after: 180 }, children: [new docx.TextRun({ text: `CATEGORÍA ALCANZADA: ${analysis.level}`, bold: true, color: '002E5B', size: 32 })] }));
-      children.push(sustainableReportParagraph(analysis.level === 'PUMA' ? 'Nivel Medio' : analysis.level === 'JAGUAR' ? 'Nivel Avanzado' : 'Nivel bajo', { alignment: docx.AlignmentType.CENTER, bold: true, color: '248A3D', size: 26 }));
+      const finalChildren = [];
+      finalChildren.push(new docx.Paragraph({ alignment: docx.AlignmentType.CENTER, spacing: { before: 700, after: 180 }, children: [new docx.TextRun({ text: `CATEGORÍA ALCANZADA: ${analysis.level}`, bold: true, color: '002E5B', size: 22, font: 'Century Gothic' })] }));
+      finalChildren.push(sustainableReportParagraph(analysis.level === 'PUMA' ? 'Nivel Medio' : analysis.level === 'JAGUAR' ? 'Nivel Avanzado' : 'Nivel bajo', { alignment: docx.AlignmentType.CENTER, bold: true, color: '248A3D' }));
       if (CATEGORY_IMAGES[analysis.level]) {
         const categoryData = await getSustainableReportImage(CATEGORY_IMAGES[analysis.level]);
-        if (categoryData) children.push(new docx.Paragraph({ alignment: docx.AlignmentType.CENTER, children: [new docx.ImageRun({ data: categoryData, transformation: { width: 210, height: 210 } })] }));
+        if (categoryData) finalChildren.push(new docx.Paragraph({ alignment: docx.AlignmentType.CENTER, children: [new docx.ImageRun({ data: categoryData, transformation: { width: 210, height: 210 } })] }));
       }
-      children.push(sustainableReportParagraph(sustainableCategoryDescriptions[analysis.level], { alignment: docx.AlignmentType.CENTER, size: 23 }));
+      finalChildren.push(sustainableReportParagraph(sustainableCategoryDescriptions[analysis.level], { alignment: docx.AlignmentType.CENTER }));
 
       const reportDocument = new docx.Document({
         creator: 'Corporación Empresarial del Oriente Antioqueño',
         title: `Informe Modelo de Gestión Sostenible CEO - ${analysis.company}`,
         description: 'Informe de hallazgos, brechas y oportunidades de mejora',
-        styles: { default: { document: { run: { font: 'Arial', size: 22, color: '243B53' }, paragraph: { spacing: { line: 276 } } } } },
-        sections: [{ properties: { page: { margin: { top: 850, right: 850, bottom: 850, left: 850 } } }, children }]
+        styles: { default: { document: { run: { font: 'Century Gothic', size: 22, color: '243B53' }, paragraph: { spacing: { line: 276 } } } } },
+        sections: [
+          sustainableReportSection(coverChildren, coverData),
+          sustainableReportSection(intermediateChildren, intermediateData),
+          sustainableReportSection(closingChildren, intermediateClosingData),
+          sustainableReportSection(finalChildren, finalData)
+        ]
       });
       const blob = await docx.Packer.toBlob(reportDocument);
       const link = document.createElement('a');
