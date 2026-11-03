@@ -195,7 +195,7 @@
       <!-- DASHBOARD CON DATOS -->
       <div id="dataContent" class="hidden space-y-6">
         <!-- METRICAS SUPERIORES -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div class="glass-card rounded-xl p-5 shadow-sm border-l-4 border-ceo-blue flex items-center justify-between">
             <div>
               <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Empresas Participantes</p>
@@ -214,6 +214,18 @@
               <i data-lucide="file-check-2" class="w-6 h-6"></i>
             </div>
           </div>
+          <details class="glass-card rounded-xl p-5 shadow-sm border-l-4 border-amber-500">
+            <summary class="flex items-center justify-between cursor-pointer list-none">
+              <div>
+                <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Pendientes por responder</p>
+                <h3 class="text-2xl font-extrabold text-slate-800 mt-1" id="kpiPendingCompanies">0</h3>
+              </div>
+              <div class="p-3 bg-amber-50 rounded-lg text-amber-600">
+                <i data-lucide="clipboard-list" class="w-6 h-6"></i>
+              </div>
+            </summary>
+            <ul id="pendingCompaniesList" class="mt-4 max-h-56 overflow-y-auto custom-scrollbar border-t border-slate-200 pt-3 space-y-2 text-xs text-slate-600"></ul>
+          </details>
         </div>
 
         <!-- TICKER SLIDER DE PARTICIPACIÓN MUNICIPAL -->
@@ -1120,7 +1132,7 @@
       "Beneficios y bienestar laboral"
     ];
 
-    let processedData = { companies: new Set(), questions: [], matrix: {}, municipalities: new Set() };
+    let processedData = { companies: new Set(), pendingCompanies: new Set(), questions: [], matrix: {}, municipalities: new Set() };
     let activeView = 'regional';
     let activeFilterMunicipio = 'ALL';
     let activeFilterTamano = 'ALL';
@@ -1284,14 +1296,18 @@
         try {
           const data = new Uint8Array(evt.target.result);
           const workbook = XLSX.read(data, { type: 'array' });
-          const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+          const correctedSheetName = 'Respuestas corregido';
+          const selectedSheetName = workbook.SheetNames.includes(correctedSheetName)
+            ? correctedSheetName
+            : workbook.SheetNames[0];
+          if (!selectedSheetName) throw new Error('El archivo no contiene hojas de datos.');
+          const selectedSheet = workbook.Sheets[selectedSheetName];
           
-          const sheetData = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: "" });
-          if (sheetData.length > 0) {
-            processData(sheetData);
-            showDashboard();
-            document.getElementById('uploadLabel').textContent = 'Cambiar Excel';
-          }
+          const sheetData = XLSX.utils.sheet_to_json(selectedSheet, { header: 1, defval: "" });
+          if (sheetData.length === 0) throw new Error(`La hoja “${selectedSheetName}” está vacía.`);
+          processData(sheetData, selectedSheetName === correctedSheetName);
+          showDashboard();
+          document.getElementById('uploadLabel').textContent = 'Cambiar Excel';
         } catch (err) {
           console.error(err);
           const notice = document.createElement('div');
@@ -2806,38 +2822,71 @@
       setTimeout(() => notice.remove(), 4500);
     }
 
-    function processData(sheetData) {
-      processedData = { companies: new Set(), questions: [], matrix: {}, municipalities: new Set() };
-      const headerRow = sheetData[0];
-      const companyNames = [];
-      for (let col = 1; col < headerRow.length; col++) {
-        const compName = cleanText(headerRow[col]);
-        if (compName) {
-          companyNames[col] = compName;
-          processedData.companies.add(compName);
+    function processData(sheetData, companiesInRows = false) {
+      const nextData = { companies: new Set(), pendingCompanies: new Set(), questions: [], matrix: {}, municipalities: new Set() };
+      const headerRow = sheetData[0] || [];
+      if (companiesInRows) {
+        if (!normalizeFilterText(headerRow[0]).includes('empresa')) {
+          throw new Error('La hoja “Respuestas corregido” no tiene el encabezado esperado de empresa en la columna A.');
         }
-      }
-      for (let row = 1; row < sheetData.length; row++) {
-        const rawQuestion = sheetData[row][0];
-        if (!rawQuestion) continue;
-        const questionClean = cleanText(rawQuestion);
-        if (!questionClean || questionClean.toUpperCase().includes('PREGUNTA')) continue;
-        processedData.questions.push(questionClean);
-        for (let col = 1; col < headerRow.length; col++) {
-          const company = companyNames[col];
+        const questionColumns = headerRow
+          .map((header, index) => ({ index, question: cleanText(header) }))
+          .filter(column => column.index > 0 && column.question);
+        if (questionColumns.length === 0) {
+          throw new Error('La hoja “Respuestas corregido” no contiene preguntas o variables en las columnas siguientes a la A.');
+        }
+        for (const column of questionColumns) nextData.questions.push(column.question);
+
+        for (let row = 1; row < sheetData.length; row++) {
+          const company = cleanText(sheetData[row][0]);
           if (!company) continue;
-          if (!processedData.matrix[company]) {
-            processedData.matrix[company] = {};
+          const responses = questionColumns.map(column => cleanText(sheetData[row][column.index]));
+          if (!responses.some(Boolean)) {
+            nextData.pendingCompanies.add(company);
+            continue;
           }
-          const response = cleanText(sheetData[row][col]);
-          processedData.matrix[company][questionClean] = response || 'Sin Respuesta';
-          
-          if (questionClean === 'Municipio' && response && !isInvalidAnswer(response)) {
-            processedData.municipalities.add(response);
+
+          nextData.companies.add(company);
+          nextData.matrix[company] = {};
+          questionColumns.forEach((column, index) => {
+            const response = responses[index];
+            nextData.matrix[company][column.question] = response || 'Sin Respuesta';
+            if (column.question === 'Municipio' && response && !isInvalidAnswer(response)) {
+              nextData.municipalities.add(response);
+            }
+          });
+        }
+      } else {
+        const companyNames = [];
+        for (let col = 1; col < headerRow.length; col++) {
+          const compName = cleanText(headerRow[col]);
+          if (compName) {
+            companyNames[col] = compName;
+            nextData.companies.add(compName);
+          }
+        }
+        for (let row = 1; row < sheetData.length; row++) {
+          const rawQuestion = sheetData[row][0];
+          if (!rawQuestion) continue;
+          const questionClean = cleanText(rawQuestion);
+          if (!questionClean || questionClean.toUpperCase().includes('PREGUNTA')) continue;
+          nextData.questions.push(questionClean);
+          for (let col = 1; col < headerRow.length; col++) {
+            const company = companyNames[col];
+            if (!company) continue;
+            if (!nextData.matrix[company]) nextData.matrix[company] = {};
+            const response = cleanText(sheetData[row][col]);
+            nextData.matrix[company][questionClean] = response || 'Sin Respuesta';
+
+            if (questionClean === 'Municipio' && response && !isInvalidAnswer(response)) {
+              nextData.municipalities.add(response);
+            }
           }
         }
       }
-      processedData.questions = orderQuestions(Array.from(new Set(processedData.questions)));
+
+      nextData.questions = orderQuestions(Array.from(new Set(nextData.questions)));
+      processedData = nextData;
       updateSelectors();
       updateMunicipalTicker();
     }
@@ -2870,6 +2919,14 @@
 
       document.getElementById('kpiTotalEmpresas').textContent = processedData.companies.size;
       document.getElementById('kpiTotalPreguntas').textContent = processedData.questions.length;
+      document.getElementById('kpiPendingCompanies').textContent = processedData.pendingCompanies.size;
+      const pendingCompaniesList = document.getElementById('pendingCompaniesList');
+      pendingCompaniesList.replaceChildren();
+      Array.from(processedData.pendingCompanies).sort().forEach(company => {
+        const item = document.createElement('li');
+        item.textContent = company;
+        pendingCompaniesList.appendChild(item);
+      });
     }
 
     function filterQuestionOptions(event) {
