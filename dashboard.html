@@ -11,6 +11,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
   <script>
@@ -161,6 +162,10 @@
           <button onclick="switchView('sustainable-model')" id="nav-sustainable-model" class="nav-btn w-full flex items-center space-x-2.5 px-3 py-2.5 text-xs font-medium rounded-lg text-slate-600 hover:bg-slate-100 transition-all text-left" title="Modelo de Gestión Sostenible CEO">
             <i data-lucide="workflow" class="w-4 h-4 flex-shrink-0"></i>
             <span class="sidebar-text truncate">Modelo de Gestión Sostenible CEO</span>
+          </button>
+          <button onclick="switchView('financial-company')" id="nav-financial-company" class="nav-btn w-full flex items-center space-x-2.5 px-3 py-2.5 text-xs font-medium rounded-lg text-slate-600 hover:bg-slate-100 transition-all text-left" title="Datos financieros de la empresa CEO">
+            <i data-lucide="wallet" class="w-4 h-4 flex-shrink-0"></i>
+            <span class="sidebar-text truncate">Datos financieros de la empresa CEO</span>
           </button>
           
           <div class="pt-4 pb-1 sidebar-header-text">
@@ -492,6 +497,133 @@
           </div>
         </div>
 
+        <!-- 4. DATOS FINANCIEROS DE LA EMPRESA CEO -->
+        <div id="viewFinancialCompany" class="hidden space-y-6">
+          <div class="glass-card rounded-xl p-5 shadow-sm border-t-4 border-ceo-blue">
+            <div class="flex flex-col xl:flex-row xl:items-end justify-between gap-4">
+              <div class="space-y-1.5 flex-1">
+                <h2 class="text-xl font-bold text-slate-800">Datos financieros de la empresa CEO</h2>
+                <p class="text-xs text-slate-500">Cargue el Excel financiero unificado actualizado para consultar y actualizar la hoja de vida de cada empresa.</p>
+                <div class="flex flex-wrap gap-2 pt-2">
+                  <label for="financialWorkbookInput" class="cursor-pointer bg-ceo-green hover:bg-emerald-600 text-white text-xs font-semibold px-3 py-2.5 rounded-lg shadow-sm transition-all flex items-center space-x-2">
+                    <i data-lucide="upload" class="w-4 h-4"></i><span id="financialWorkbookLabel">Cargar Excel financiero</span>
+                  </label>
+                  <input id="financialWorkbookInput" type="file" accept=".xlsx,.xls" class="hidden">
+                  <button id="financialWorkbookExportBtn" class="hidden bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-3 py-2.5 rounded-lg shadow-sm transition-all flex items-center space-x-2">
+                    <i data-lucide="download" class="w-4 h-4"></i><span>Descargar Excel actualizado</span>
+                  </button>
+                </div>
+                <p id="financialWorkbookStatus" class="text-xs text-slate-500" role="status">Seleccione el archivo “Novedades financieras y uso de servicios CEO - actualizado.xlsx”.</p>
+                <label class="text-xs font-bold text-slate-600 uppercase tracking-wider flex items-center space-x-1 pt-2">
+                  <i data-lucide="wallet" class="w-3.5 h-3.5 text-ceo-blue"></i>
+                  <span>Empresa afiliada</span>
+                </label>
+                <input id="financialCompanySearch" type="search" placeholder="Buscar empresa por nombre o NIT..." class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 focus:ring-2 focus:ring-ceo-blue focus:outline-none transition-all" disabled>
+                <select id="financialCompanySelect" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-800 focus:ring-2 focus:ring-ceo-blue focus:outline-none transition-all" disabled></select>
+              </div>
+              <div class="flex flex-wrap gap-2">
+                <button id="financialCompanyViewBtn" class="bg-ceo-blue hover:bg-ceo-bluelight text-white text-xs font-semibold px-3 py-2.5 rounded-lg shadow-sm transition-all flex items-center space-x-2" disabled>
+                  <i data-lucide="file-user" class="w-4 h-4"></i><span>Ver hoja de vida</span>
+                </button>
+                <button id="financialCompanyPinBtn" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-3 py-2.5 rounded-lg shadow-sm transition-all flex items-center space-x-2">
+                  <i data-lucide="shield" class="w-4 h-4"></i><span>Configurar PIN</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 text-xs text-slate-700 space-y-1">
+            <p><strong>Cómo usarlo:</strong> 1) Cargue el Excel financiero unificado. 2) Busque y seleccione la empresa. 3) Pulse “Ver hoja de vida”. 4) Para cambiar datos, pulse “Editar empresa”, valide el PIN y guarde.</p>
+            <p>Al guardar se descarga un Excel actualizado que conserva el formato de moneda, porcentaje y fecha corta; use esa copia la próxima vez. El archivo original no se modifica.</p>
+            <p class="text-slate-500">El PIN se almacena solo en este navegador. Como el Dashboard es estático y no tiene servidor de autenticación, sirve como barrera de uso, no como control de acceso corporativo ni sincroniza cambios entre colaboradores.</p>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div class="glass-card rounded-xl p-4 shadow-sm border-l-4 border-ceo-blue">
+              <p class="text-[11px] font-bold text-slate-500 uppercase">% SMMLV</p>
+              <h4 id="financialSmmlvPct" class="text-2xl font-extrabold text-slate-800 mt-1">0</h4>
+            </div>
+            <div class="glass-card rounded-xl p-4 shadow-sm border-l-4 border-emerald-500">
+              <p class="text-[11px] font-bold text-slate-500 uppercase">Cuota sostenimiento</p>
+              <h4 id="financialCuotaSostenimiento" class="text-xl font-extrabold text-emerald-800 mt-1">$ 0</h4>
+            </div>
+            <div class="glass-card rounded-xl p-4 shadow-sm border-l-4 border-amber-500">
+              <p class="text-[11px] font-bold text-slate-500 uppercase">Sostenibilidad</p>
+              <h4 id="financialSostenibilidad" class="text-xl font-extrabold text-amber-700 mt-1">$ 0</h4>
+            </div>
+            <div class="glass-card rounded-xl p-4 shadow-sm border-l-4 border-violet-500">
+              <p class="text-[11px] font-bold text-slate-500 uppercase">Seguridad / riesgo</p>
+              <h4 id="financialSeguridad" class="text-xl font-extrabold text-violet-800 mt-1">$ 0</h4>
+            </div>
+            <div class="glass-card rounded-xl p-4 shadow-sm border-l-4 border-rose-500">
+              <p class="text-[11px] font-bold text-slate-500 uppercase">Programa / recursos</p>
+              <h4 id="financialProgramCount" class="text-2xl font-extrabold text-rose-800 mt-1">0</h4>
+            </div>
+          </div>
+
+          <div id="financialCompanyPreview" class="grid grid-cols-1 xl:grid-cols-[1.5fr_1fr] gap-6 hidden">
+            <div class="glass-card rounded-xl p-5 shadow-sm">
+              <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div>
+                  <h3 class="text-base font-bold text-slate-800">Hoja de vida de la empresa</h3>
+                  <p class="text-xs text-slate-500">Fechas importantes, servicio contratado y evolución del vínculo con CEO.</p>
+                </div>
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                <div class="bg-slate-50 border border-slate-200 rounded-lg p-3">
+                  <p class="text-[10px] font-bold uppercase text-slate-500">Fecha de afiliación</p>
+                  <p id="financialFechaAfiliacion" class="text-sm font-bold text-slate-800 mt-1">—</p>
+                </div>
+                <div class="bg-slate-50 border border-slate-200 rounded-lg p-3">
+                  <p class="text-[10px] font-bold uppercase text-slate-500">Fecha de retiro</p>
+                  <p id="financialFechaRetiro" class="text-sm font-bold text-slate-800 mt-1">—</p>
+                </div>
+                <div class="bg-slate-50 border border-slate-200 rounded-lg p-3">
+                  <p class="text-[10px] font-bold uppercase text-slate-500">Fecha de reingreso</p>
+                  <p id="financialFechaReingreso" class="text-sm font-bold text-slate-800 mt-1">—</p>
+                </div>
+              </div>
+
+              <div class="mt-5">
+                <h4 class="text-xs font-bold text-slate-600 uppercase tracking-wider mb-3">Servicios y recursos consumidos para 2026</h4>
+                <div id="financialServiceList" class="flex flex-wrap gap-2"></div>
+              </div>
+
+              <div class="mt-5">
+                <h4 class="text-xs font-bold text-slate-600 uppercase tracking-wider mb-3">Notas internas y observaciones</h4>
+                <div id="financialNotesList" class="space-y-2"></div>
+              </div>
+            </div>
+
+            <div class="glass-card rounded-xl p-5 shadow-sm">
+              <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div>
+                  <h3 class="text-base font-bold text-slate-800">Resumen de facturación y negociaciones</h3>
+                  <p class="text-xs text-slate-500">Se incorpora la información existente del Excel financiero para consulta inmediata.</p>
+                </div>
+              </div>
+              <div class="space-y-4 mt-4">
+                <div>
+                  <p class="text-[10px] font-bold uppercase text-slate-500">Cuota de sostenimiento 2026</p>
+                  <p id="financialDetalleCuota" class="text-sm text-slate-700 mt-1">—</p>
+                </div>
+                <div>
+                  <p class="text-[10px] font-bold uppercase text-slate-500">Programa de sostenibilidad</p>
+                  <p id="financialDetalleSostenibilidad" class="text-sm text-slate-700 mt-1">—</p>
+                </div>
+                <div>
+                  <p class="text-[10px] font-bold uppercase text-slate-500">Programa ambiental</p>
+                  <p id="financialDetalleAmbiental" class="text-sm text-slate-700 mt-1">—</p>
+                </div>
+                <div>
+                  <p class="text-[10px] font-bold uppercase text-slate-500">Gestión de riesgo / seguridad</p>
+                  <p id="financialDetalleRiesgo" class="text-sm text-slate-700 mt-1">—</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- 4. MODELO DE GESTIÓN SOSTENIBLE CEO -->
         <div id="viewSustainableModel" class="hidden space-y-6">
           <div class="glass-card rounded-xl p-5 shadow-sm border-t-4 border-ceo-green">
@@ -605,6 +737,202 @@
       <p>© 2026 Plataforma de Diagnóstico e Insights de Sostenibilidad Regional.</p>
     </div>
   </footer>
+
+  <div id="financialProfileModal" class="fixed inset-0 bg-slate-900/60 hidden z-50 p-4 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="financialProfileName">
+    <div class="max-w-5xl mx-auto my-6 bg-white rounded-2xl shadow-2xl ring-1 ring-slate-200">
+      <div class="p-5 sm:p-8">
+        <div class="flex items-start justify-between gap-4 border-b border-slate-100 pb-5">
+          <div class="min-w-0">
+            <span id="financialProfileNit" class="inline-flex bg-blue-50 text-sky-700 border border-blue-100 rounded-full px-3 py-1 text-xs font-bold"></span>
+            <h2 id="financialProfileName" class="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-3 break-words"></h2>
+            <p class="text-sm text-slate-500 mt-1">Afiliación: <span id="financialProfileAffiliation">Sin información</span></p>
+          </div>
+          <button id="financialProfileCloseBtn" class="p-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex-shrink-0" aria-label="Cerrar hoja de vida">
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 py-5">
+          <div class="bg-slate-50 border border-slate-100 rounded-2xl p-4">
+            <p class="text-xs font-bold uppercase text-slate-500">Cuota CEO 2026</p>
+            <p id="financialProfileCuota" class="text-xl font-extrabold text-slate-900 mt-1"></p>
+            <p id="financialProfileCuotaPeriod" class="text-xs text-slate-500 mt-1"></p>
+          </div>
+          <div class="bg-slate-50 border border-slate-100 rounded-2xl p-4">
+            <p class="text-xs font-bold uppercase text-slate-500">% del SMMLV</p>
+            <p id="financialProfilePercent" class="text-xl font-extrabold text-slate-900 mt-1"></p>
+            <p id="financialProfileSmmlv" class="text-xs text-slate-500 mt-1"></p>
+          </div>
+          <div class="bg-slate-50 border border-slate-100 rounded-2xl p-4">
+            <p class="text-xs font-bold uppercase text-slate-500">Sostenibilidad / ambiental</p>
+            <p id="financialProfileSustainability" class="text-xl font-extrabold text-slate-900 mt-1"></p>
+          </div>
+          <div class="bg-slate-50 border border-slate-100 rounded-2xl p-4">
+            <p class="text-xs font-bold uppercase text-slate-500">Seguridad / riesgo</p>
+            <p id="financialProfileRisk" class="text-xl font-extrabold text-slate-900 mt-1"></p>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pb-5">
+          <div class="bg-slate-50 border border-slate-100 rounded-xl p-3"><p class="text-[10px] font-bold uppercase text-slate-500">Fecha de afiliación</p><p id="financialProfileJoin" class="text-sm font-bold text-slate-800 mt-1"></p></div>
+          <div class="bg-slate-50 border border-slate-100 rounded-xl p-3"><p class="text-[10px] font-bold uppercase text-slate-500">Fecha de retiro</p><p id="financialProfileRetire" class="text-sm font-bold text-slate-800 mt-1"></p></div>
+          <div class="bg-slate-50 border border-slate-100 rounded-xl p-3"><p class="text-[10px] font-bold uppercase text-slate-500">Fecha de reingreso</p><p id="financialProfileRejoin" class="text-sm font-bold text-slate-800 mt-1"></p></div>
+        </div>
+        <div id="financialProfileExtra" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pb-5"></div>
+        <div class="border-t border-slate-100 pt-4">
+          <h3 class="text-sm font-extrabold uppercase tracking-wide text-slate-800">Programas y servicios activos</h3>
+          <div id="financialProfileServices" class="flex flex-wrap gap-2 mt-3"></div>
+        </div>
+        <div class="border-t border-slate-100 pt-4 mt-4">
+          <h3 class="text-sm font-extrabold uppercase tracking-wide text-slate-800">Pagos por programa</h3>
+          <div id="financialProfilePayments" class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3"></div>
+        </div>
+        <div class="border-t border-slate-100 pt-4 mt-4">
+          <h3 class="text-sm font-extrabold uppercase tracking-wide text-slate-800">Historial de observaciones y negociaciones</h3>
+          <div id="financialProfileNotes" class="space-y-2 mt-3"></div>
+        </div>
+        <div class="flex justify-end gap-3 border-t border-slate-100 pt-5 mt-5">
+          <button id="financialProfileCloseSecondaryBtn" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold px-4 py-2.5 rounded-xl">Cerrar</button>
+          <button id="financialCompanyEditBtn" class="bg-sky-700 hover:bg-sky-800 text-white text-sm font-semibold px-5 py-2.5 rounded-xl flex items-center gap-2">
+            <i data-lucide="pencil" class="w-4 h-4"></i><span>Editar empresa</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="financialPinModal" class="fixed inset-0 bg-slate-900/60 hidden z-[60] p-4 flex items-center justify-center" role="dialog" aria-modal="true" aria-labelledby="financialPinTitle">
+    <div class="w-full max-w-md bg-white rounded-2xl shadow-2xl ring-1 ring-slate-200 p-6">
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <h3 id="financialPinTitle" class="text-lg font-bold text-slate-800">Validar PIN</h3>
+          <p id="financialPinDescription" class="text-sm text-slate-500 mt-1">Ingrese el PIN de 4 dígitos para continuar.</p>
+        </div>
+        <button id="financialPinCloseBtn" class="p-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500" aria-label="Cerrar validación">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+      <div class="space-y-3 mt-5">
+        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500" for="financialPinInput">PIN de 4 dígitos</label>
+        <input id="financialPinInput" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="off" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-4 py-3 text-lg tracking-[0.4em] text-slate-800 focus:ring-2 focus:ring-ceo-blue focus:outline-none">
+        <div id="financialPinConfirmWrapper" class="hidden">
+          <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1" for="financialPinConfirmInput">Confirmar PIN</label>
+          <input id="financialPinConfirmInput" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="off" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-4 py-3 text-lg tracking-[0.4em] text-slate-800 focus:ring-2 focus:ring-ceo-blue focus:outline-none">
+        </div>
+        <p id="financialPinError" class="hidden text-sm font-medium text-red-600" role="alert"></p>
+        <div class="flex justify-end gap-2 pt-2">
+          <button id="financialPinCancelBtn" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold px-4 py-2.5 rounded-lg">Cancelar</button>
+          <button id="financialPinSubmitBtn" class="bg-ceo-blue hover:bg-ceo-bluelight text-white text-sm font-semibold px-4 py-2.5 rounded-lg">Validar PIN</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="financialEditModal" class="fixed inset-0 bg-slate-900/60 hidden z-50 p-4 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="financialEditTitle">
+    <div class="max-w-6xl mx-auto bg-white rounded-2xl shadow-2xl ring-1 ring-slate-200">
+      <div class="flex items-center justify-between px-5 py-4 border-b border-slate-200">
+        <div>
+          <h3 id="financialEditTitle" class="text-base font-bold text-slate-800">Editar hoja de vida de la empresa</h3>
+          <p class="text-xs text-slate-500">Solo personal autorizado puede modificar la información financiera y la hoja de vida.</p>
+        </div>
+        <button id="financialCloseModalBtn" class="p-2 rounded-lg hover:bg-slate-100 text-slate-500" aria-label="Cerrar modal">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <form id="financialEditForm" class="p-5 space-y-5">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">Empresa</label>
+            <input id="financialFormNombre" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-ceo-blue focus:outline-none" type="text">
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">NIT</label>
+            <input id="financialFormNit" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-ceo-blue focus:outline-none" type="text">
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">SMLV 2026</label>
+            <input id="financialFormSmlv" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-ceo-blue focus:outline-none" type="number">
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">% que paga del SMLV</label>
+            <input id="financialFormPorcentaje" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-ceo-blue focus:outline-none" type="number" step="0.01">
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">Cuota de sostenimiento</label>
+            <input id="financialFormCuota" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-ceo-blue focus:outline-none" type="text" inputmode="decimal">
+            <select id="financialFormCuotaPeriod" class="mt-2 w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2.5 text-sm text-slate-700"><option value="">Periodicidad sin definir</option><option value="Mensual">Mensual</option><option value="Anual">Anual</option></select>
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">Programa de sostenibilidad</label>
+            <input id="financialFormSostenibilidad" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-ceo-blue focus:outline-none" type="text" inputmode="decimal">
+            <select id="financialFormSostenibilidadPeriod" class="mt-2 w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2.5 text-sm text-slate-700"><option value="">Periodicidad sin definir</option><option value="Mensual">Mensual</option><option value="Anual">Anual</option></select>
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">Programa ambiental</label>
+            <input id="financialFormAmbiental" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-ceo-blue focus:outline-none" type="text" inputmode="decimal">
+            <select id="financialFormAmbientalPeriod" class="mt-2 w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2.5 text-sm text-slate-700"><option value="">Periodicidad sin definir</option><option value="Mensual">Mensual</option><option value="Anual">Anual</option></select>
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">Gestión del riesgo / seguridad</label>
+            <input id="financialFormRiesgo" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-ceo-blue focus:outline-none" type="text" inputmode="decimal">
+            <select id="financialFormRiesgoPeriod" class="mt-2 w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2.5 text-sm text-slate-700"><option value="">Periodicidad sin definir</option><option value="Mensual">Mensual</option><option value="Anual">Anual</option></select>
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">Fecha de afiliación</label>
+            <input id="financialFormAfiliacion" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-ceo-blue focus:outline-none" type="date">
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">Fecha de retiro</label>
+            <input id="financialFormRetiro" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-ceo-blue focus:outline-none" type="date">
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">Fecha de reingreso</label>
+            <input id="financialFormReingreso" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-ceo-blue focus:outline-none" type="date">
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">Tarifa 2025 (COP o detalle)</label>
+            <input id="financialFormTarifa2025" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-ceo-blue focus:outline-none" type="text">
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">Estado actual</label>
+            <input id="financialFormEstado" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-ceo-blue focus:outline-none" type="text">
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">Activos a 31 de diciembre de 2024</label>
+            <input id="financialFormActivos" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-ceo-blue focus:outline-none" type="number" step="0.01">
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">Empleados</label>
+            <input id="financialFormEmpleados" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-ceo-blue focus:outline-none" type="number" step="1">
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">Reunión de fidelización / nota</label>
+            <input id="financialFormReunion" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-ceo-blue focus:outline-none" type="text">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">Valores de programas en COP y periodicidad</label>
+          <p class="text-xs text-slate-500 mb-2">Deje el valor vacío si no está informado. Seleccione si el cobro es mensual o anual.</p>
+          <div id="financialPaymentFields" class="grid grid-cols-1 lg:grid-cols-2 gap-3"></div>
+        </div>
+
+        <div>
+          <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">Servicios / recursos CEO para 2026</label>
+          <div id="financialServiceChecklist" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 max-h-72 overflow-y-auto pr-2"></div>
+        </div>
+
+        <div>
+          <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">Notas internas</label>
+          <textarea id="financialFormNotas" rows="4" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-ceo-blue focus:outline-none"></textarea>
+        </div>
+
+        <div class="flex items-center justify-end gap-3 pt-2 border-t border-slate-200">
+          <button type="button" id="financialCloseSecondaryBtn" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-4 py-2.5 rounded-lg">Cancelar</button>
+          <button type="button" id="financialSaveBtn" class="bg-ceo-blue hover:bg-ceo-bluelight text-white text-xs font-semibold px-4 py-2.5 rounded-lg">Guardar cambios</button>
+        </div>
+      </form>
+    </div>
+  </div>
 
   <script>
     const MULTI_CHOICE_QUESTIONS = new Set([
@@ -830,6 +1158,7 @@
       setupEventListeners();
       renderSidebarModules();
       renderSustainableInventoryState();
+      renderFinancialEmptyState();
     });
 
     function setupEventListeners() {
@@ -840,6 +1169,24 @@
       document.getElementById('questionSelect').addEventListener('change', updateRegionalView);
       document.getElementById('companySearch').addEventListener('input', filterCompanyOptions);
       document.getElementById('companySelect').addEventListener('change', updateCompanyView);
+      document.getElementById('financialWorkbookInput').addEventListener('change', handleFinancialWorkbookUpload);
+      document.getElementById('financialWorkbookInput').addEventListener('click', (event) => {
+        event.target.value = '';
+      });
+      document.getElementById('financialCompanySearch').addEventListener('input', (event) => renderFinancialCompanyOptions(event.target.value));
+      document.getElementById('financialCompanySelect').addEventListener('change', updateFinancialCompanyView);
+      document.getElementById('financialCompanyViewBtn').addEventListener('click', openFinancialProfileModal);
+      document.getElementById('financialCompanyEditBtn').addEventListener('click', openFinancialEditModal);
+      document.getElementById('financialCompanyPinBtn').addEventListener('click', configureFinancialPIN);
+      document.getElementById('financialPinSubmitBtn').addEventListener('click', handleFinancialPinSubmit);
+      document.getElementById('financialPinCancelBtn').addEventListener('click', closeFinancialPinModal);
+      document.getElementById('financialPinCloseBtn').addEventListener('click', closeFinancialPinModal);
+      document.getElementById('financialSaveBtn').addEventListener('click', saveFinancialEditForm);
+      document.getElementById('financialWorkbookExportBtn').addEventListener('click', exportFinancialWorkbook);
+      document.getElementById('financialProfileCloseBtn').addEventListener('click', closeFinancialProfileModal);
+      document.getElementById('financialProfileCloseSecondaryBtn').addEventListener('click', closeFinancialProfileModal);
+      document.getElementById('financialCloseModalBtn').addEventListener('click', () => document.getElementById('financialEditModal').classList.add('hidden'));
+      document.getElementById('financialCloseSecondaryBtn').addEventListener('click', () => document.getElementById('financialEditModal').classList.add('hidden'));
       document.getElementById('tableSearch').addEventListener('input', filterTable);
     }
 
@@ -956,6 +1303,1062 @@
         }
       };
       reader.readAsArrayBuffer(file);
+    }
+
+    const FINANCIAL_PIN_KEY = 'ceo-financial-company-pin-v1';
+    const FINANCIAL_PAYMENT_OPTIONS = [
+      { key: 'cuota', label: 'Cuota de sostenimiento', header: 'CEO 2026', amountId: 'financialFormCuota', periodId: 'financialFormCuotaPeriod' },
+      { key: 'sostenibilidad', label: 'Programa de sostenibilidad', header: 'SOSTENIBILIDAD 2026', amountId: 'financialFormSostenibilidad', periodId: 'financialFormSostenibilidadPeriod' },
+      { key: 'ambiental', label: 'Programa ambiental', header: 'Programa ambiental 2026', amountId: 'financialFormAmbiental', periodId: 'financialFormAmbientalPeriod' },
+      { key: 'riesgo', label: 'Programa de seguridad y gestión del riesgo', header: 'SEG 2026', amountId: 'financialFormRiesgo', periodId: 'financialFormRiesgoPeriod' },
+      { key: 'devbida', label: 'Opción Devbida', header: 'Opcion Devbida 2026' },
+      { key: 'botzone', label: 'Clubes de Robótica Botzone', header: 'Clubes de Robótica Botzone 2026' },
+      { key: 'aromas', label: 'Escuela de Aromas CEO', header: 'Escuela de Aromas CEO 2026' },
+      { key: 'lideres', label: 'Formación Líderes CEO', header: 'Formación Líderes CEO 2026' },
+      { key: 'alianzas', label: 'Alianzas de Valor', header: 'Alianzas de Valor 2026' }
+    ];
+    const FINANCIAL_SERVICE_OPTIONS = [
+      'Estrategia',
+      'Opcion Devbida',
+      'Clubes de Robótica Botzone',
+      'Ruta Conectando Futuros',
+      'Modelo de Gestión del Talento',
+      'Expoempresas',
+      'Escuela de Aromas CEO',
+      'Ecodesarrollo',
+      'CUEES',
+      'OxI',
+      'Corredor Sostenible Garrido, Berracal, Toldas y Hojas Anchas',
+      'Corredor Sostenible La Laja - La Playa',
+      'Corredor Sostenible La Hondita - San José',
+      'Corredor Sostenible Río Claro',
+      'Proyecto RAEES',
+      'Proyecto de Infraestructuras Logísticas Especializadas – ILE',
+      'Proyecto de Inventario Tecnológico para gestión de Cooperación Internacional',
+      'Mesa Biomasa',
+      'Proyecto Eficiencia Operacional con la UCO',
+      'Negocios Verdes',
+      'Economía Circular',
+      'Programa de Sostenibilidad',
+      'Programa Ambiental',
+      'Plan Oriente Regenera',
+      'Formación Líderes CEO',
+      'Alianzas de Valor',
+      'Programa de Gestión del Riesgo',
+      'Comités de Ayuda Mutua',
+      'Proyecto Embotelladora',
+      'Comité de Sostenibilidad',
+      'Comité de Compras',
+      'Comité de Innovación',
+      'Comité Técnico',
+      'Comités de Gestión Humana',
+      'Comité de Gestión del Riesgo',
+      'Beneficios SoyCEO'
+    ];
+    let financialCompanyData = {};
+    let currentFinancialCompany = '';
+    let financialWorkbook = null;
+    let financialWorkbookSource = null;
+    let financialWorksheet = null;
+    let financialWorksheetName = '';
+    let financialHeaderRowIndex = 0;
+    let financialHeaderColumns = [];
+    let financialFileName = '';
+    let financialCellUpdates = new Map();
+
+    function ensureFinancialPin() {
+      return getStoredFinancialPin();
+    }
+
+    function getStoredFinancialPin() {
+      const savedPin = localStorage.getItem(FINANCIAL_PIN_KEY);
+      return savedPin && /^[a-f0-9]{32}:[a-f0-9]{64}$/i.test(savedPin) ? savedPin : null;
+    }
+
+    function formatMoneyValue(value) {
+      if (value === null || value === undefined || value === '') return 'Sin registro';
+      const num = typeof value === 'number' ? value : parseNumericValue(value);
+      if (num === null || Number.isNaN(num)) return cleanText(value) || 'Sin registro';
+      return `$ ${Math.round(num).toLocaleString('es-CO')}`;
+    }
+
+    function formatPercentValue(value) {
+      const num = Number(value);
+      if (value === null || value === undefined || value === '' || Number.isNaN(num)) {
+        return 'Sin dato';
+      }
+      const percentage = Math.abs(num) <= 1.5 ? num * 100 : num;
+      return `${Number(percentage).toFixed(2).replace('.', ',')}%`;
+    }
+
+    function parseFinancialDate(value) {
+      if (value === null || value === undefined || String(value).trim() === '') {
+        return '';
+      }
+      if (typeof value === 'number') {
+        const parsed = XLSX.SSF.parse_date_code(value);
+        if (parsed) {
+          return `${parsed.y}-${String(parsed.m).padStart(2, '0')}-${String(parsed.d).padStart(2, '0')}`;
+        }
+      }
+      const text = String(value).trim();
+      if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return text;
+      const dateMatch = text.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/);
+      if (dateMatch) return `${dateMatch[3]}-${dateMatch[2].padStart(2, '0')}-${dateMatch[1].padStart(2, '0')}`;
+      return '';
+    }
+
+    function formatFinancialDateOrText(value) {
+      const date = parseFinancialDate(value);
+      if (!date) return cleanText(value);
+      const [year, month, day] = date.split('-');
+      return `${day}/${month}/${year}`;
+    }
+
+    function normalizeFinancialCompanyName(name) {
+      return cleanText(name).replace(/\s+/g, ' ').trim();
+    }
+
+    function getFinancialCompanyRecord(name) {
+      const normalized = normalizeFinancialCompanyName(name);
+      return financialCompanyData[normalized] || {
+        nombre: normalized,
+        nit: '',
+        smlv: '',
+        porcentajeSMMLV: '',
+        cuotaSostenimiento: '',
+        programaSostenibilidad: '',
+        programaAmbiental: '',
+        seguridadRiesgo: '',
+        pagos: {},
+        servicios: [],
+        negociaciones: [],
+        novedades: [],
+        fechaAfiliacion: '',
+        fechaRetiro: '',
+        fechaReingreso: '',
+        notas: '',
+        tarifa2025: '',
+        estadoActual: '',
+        activos: '',
+        empleados: '',
+        reunionFidelizacion: '',
+        sourceRows: []
+      };
+    }
+
+    function normalizeFinancialHeader(value) {
+      return normalizeFilterText(value).replace(/[^a-z0-9]/g, '');
+    }
+
+    function findFinancialHeaderIndex(headers, candidates) {
+      const normalizedHeaders = headers.map(normalizeFinancialHeader);
+      for (const candidate of candidates) {
+        const index = normalizedHeaders.indexOf(normalizeFinancialHeader(candidate));
+        if (index >= 0) return index;
+      }
+      return -1;
+    }
+
+    function renderFinancialEmptyState(message = 'Seleccione el archivo “Novedades financieras y uso de servicios CEO - actualizado.xlsx”.') {
+      document.getElementById('financialWorkbookStatus').textContent = message;
+      document.getElementById('financialCompanySearch').disabled = true;
+      document.getElementById('financialCompanySelect').disabled = true;
+      document.getElementById('financialCompanyViewBtn').disabled = true;
+      document.getElementById('financialWorkbookExportBtn').classList.add('hidden');
+      document.getElementById('financialCompanyPreview').classList.add('hidden');
+      document.getElementById('financialCompanySelect').innerHTML = '<option value="">Cargue primero el Excel financiero</option>';
+      document.getElementById('financialSmmlvPct').textContent = '—';
+      document.getElementById('financialCuotaSostenimiento').textContent = '—';
+      document.getElementById('financialSostenibilidad').textContent = '—';
+      document.getElementById('financialSeguridad').textContent = '—';
+      document.getElementById('financialProgramCount').textContent = '—';
+    }
+
+    function handleFinancialWorkbookUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      document.getElementById('financialWorkbookLabel').textContent = 'Leyendo Excel...';
+      const reader = new FileReader();
+      reader.onload = (loadEvent) => {
+        try {
+          financialWorkbookSource = new Uint8Array(loadEvent.target.result).slice();
+          financialWorkbook = XLSX.read(financialWorkbookSource, { type: 'array', cellDates: false });
+          financialCellUpdates = new Map();
+          financialFileName = file.name;
+          const sheetMatch = financialWorkbook.SheetNames.map((name) => ({
+            name,
+            sheet: financialWorkbook.Sheets[name],
+            rows: XLSX.utils.sheet_to_json(financialWorkbook.Sheets[name], { header: 1, defval: '' })
+          })).find(({ rows }) => rows.slice(0, 10).some((row) =>
+            row.some((cell) => ['empresa', 'razon social', 'razon social empresa'].includes(normalizeFinancialHeader(cell)))
+          ));
+          if (!sheetMatch) throw new Error('No se encontró una hoja con la columna Empresa o Razón social.');
+
+          financialWorksheet = sheetMatch.sheet;
+          financialWorksheetName = sheetMatch.name;
+          const headerRowIndex = sheetMatch.rows.findIndex((row) =>
+            row.some((cell) => ['empresa', 'razon social', 'razon social empresa'].includes(normalizeFinancialHeader(cell)))
+          );
+          financialHeaderRowIndex = headerRowIndex;
+          financialHeaderColumns = sheetMatch.rows[headerRowIndex].map((cell) => cleanText(cell));
+          financialCompanyData = parseFinancialCompanyRows(sheetMatch.rows, headerRowIndex, financialHeaderColumns);
+          const companies = Object.keys(financialCompanyData);
+          if (!companies.length) throw new Error('No se encontraron empresas en la hoja seleccionada.');
+
+          document.getElementById('financialWorkbookLabel').textContent = 'Cambiar Excel';
+          document.getElementById('financialWorkbookStatus').textContent = `${file.name}: ${companies.length} empresas cargadas desde la hoja “${financialWorksheetName}”.`;
+          document.getElementById('financialCompanySearch').disabled = false;
+          document.getElementById('financialCompanySelect').disabled = false;
+          document.getElementById('financialCompanyViewBtn').disabled = false;
+          document.getElementById('financialWorkbookExportBtn').classList.remove('hidden');
+          document.getElementById('financialCompanyPreview').classList.remove('hidden');
+          renderFinancialCompanyOptions();
+          showNotice(`Se cargaron ${companies.length} empresas correctamente.`, 'bg-emerald-600');
+        } catch (error) {
+          console.error(error);
+          financialWorkbook = null;
+          financialWorkbookSource = null;
+          financialWorksheet = null;
+          financialCellUpdates = new Map();
+          financialCompanyData = {};
+          document.getElementById('financialWorkbookLabel').textContent = 'Cargar Excel financiero';
+          renderFinancialEmptyState(error.message || 'No fue posible leer el Excel seleccionado.');
+          showNotice(error.message || 'No fue posible leer el archivo Excel.', 'bg-red-600');
+        }
+      };
+      reader.onerror = () => {
+        financialWorkbook = null;
+        financialWorkbookSource = null;
+        financialWorksheet = null;
+        financialCellUpdates = new Map();
+        financialCompanyData = {};
+        document.getElementById('financialWorkbookLabel').textContent = 'Cargar Excel financiero';
+        renderFinancialEmptyState('No fue posible leer el archivo seleccionado.');
+        showNotice('No fue posible leer el archivo seleccionado.', 'bg-red-600');
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    function parseFinancialCompanyRows(rows, headerRowIndex, headers) {
+      const companyIndex = findFinancialHeaderIndex(headers, ['Empresa', 'Razón social', 'Razón social empresa']);
+      if (companyIndex < 0) throw new Error('La hoja no contiene la columna Empresa o Razón social.');
+      const nitIndex = findFinancialHeaderIndex(headers, ['NIT']);
+      const dateIndexes = {
+        fechaAfiliacion: findFinancialHeaderIndex(headers, ['Fecha de Ingreso', 'Fecha de afiliación', 'Fecha de afiliacion']),
+        fechaRetiro: findFinancialHeaderIndex(headers, ['Fecha de retiro']),
+        fechaReingreso: findFinancialHeaderIndex(headers, ['Fecha de reingreso'])
+      };
+      const serviceIndexes = FINANCIAL_SERVICE_OPTIONS.map((service) => ({
+        nombre: service,
+        index: findFinancialHeaderIndex(headers, [service]),
+        yearIndex: findFinancialHeaderIndex(headers, [`Año de inicio - ${service}`])
+      })).filter((service) => service.index >= 0);
+      const paymentIndexes = FINANCIAL_PAYMENT_OPTIONS.map((payment) => ({
+        payment,
+        index: findFinancialHeaderIndex(headers, [payment.header]),
+        periodIndex: findFinancialHeaderIndex(headers, [`Periodicidad ${payment.label}`])
+      }));
+      const indexes = {
+        smlv: findFinancialHeaderIndex(headers, ['SMLV 2026', 'SMMLV 2026']),
+        percentage: findFinancialHeaderIndex(headers, ['% que paga del SMMLV', '% que paga del SMLV', 'Porcentaje SMLV', '% SMMLV']),
+        notes: findFinancialHeaderIndex(headers, ['Nota', 'Notas', 'Observaciones']),
+        negotiation: findFinancialHeaderIndex(headers, ['NEGOCIACIÓN ESPECIAL', 'Negociación especial']),
+        billingTitle: findFinancialHeaderIndex(headers, ['Novedad']),
+        billingDate: findFinancialHeaderIndex(headers, ['Fecha de la novedad']),
+        billingNotes: findFinancialHeaderIndex(headers, ['Observaciones']),
+        fee2025: findFinancialHeaderIndex(headers, ['Tarifa 2025']),
+        currentStatus: findFinancialHeaderIndex(headers, ['Estado actual']),
+        assets: findFinancialHeaderIndex(headers, ['Activos a 31 de diciembre 2024']),
+        employees: findFinancialHeaderIndex(headers, ['Empleados']),
+        meeting: findFinancialHeaderIndex(headers, ['Reunión fidelización'])
+      };
+
+      const records = {};
+      for (let rowIndex = headerRowIndex + 1; rowIndex < rows.length; rowIndex++) {
+        const row = rows[rowIndex] || [];
+        const name = cleanText(row[companyIndex]);
+        if (!name) continue;
+        const key = normalizeFinancialCompanyName(name);
+        const record = records[key] || {
+          nombre: name,
+          nit: '',
+          smlv: '',
+          porcentajeSMMLV: '',
+          servicios: [],
+          pagos: {},
+          negociaciones: [],
+          novedades: [],
+          fechaAfiliacion: '',
+          fechaRetiro: '',
+          fechaReingreso: '',
+          notas: '',
+          tarifa2025: '',
+          estadoActual: '',
+          activos: '',
+          empleados: '',
+          reunionFidelizacion: '',
+          sourceRows: [],
+          sourceRow: rowIndex,
+          sourceHasIdentity: false
+        };
+        const nit = nitIndex >= 0 ? cleanText(row[nitIndex]) : '';
+        if (nit) {
+          if (!record.nit) record.nit = nit;
+          if (!record.sourceHasIdentity) {
+            record.sourceRow = rowIndex;
+            record.sourceHasIdentity = true;
+          }
+        }
+        if (indexes.smlv >= 0 && row[indexes.smlv] !== '' && !record.smlv) record.smlv = row[indexes.smlv];
+        if (indexes.percentage >= 0 && row[indexes.percentage] !== '' && !record.porcentajeSMMLV) record.porcentajeSMMLV = row[indexes.percentage];
+        Object.entries(dateIndexes).forEach(([keyName, index]) => {
+          const parsed = index >= 0 ? parseFinancialDate(row[index]) : '';
+          if (parsed && !record[keyName]) record[keyName] = parsed;
+        });
+        paymentIndexes.forEach(({ payment, index, periodIndex }) => {
+          if (index < 0 && periodIndex < 0) return;
+          if (!record.pagos[payment.key]) record.pagos[payment.key] = { monto: '', periodicidad: '' };
+          if (index >= 0 && row[index] !== '' && row[index] !== null && row[index] !== undefined && record.pagos[payment.key].monto === '') {
+            record.pagos[payment.key].monto = row[index];
+          }
+          if (periodIndex >= 0 && row[periodIndex] && !record.pagos[payment.key].periodicidad) {
+            record.pagos[payment.key].periodicidad = cleanText(row[periodIndex]);
+          }
+        });
+        serviceIndexes.forEach(({ nombre: service, index, yearIndex }) => {
+          const value = cleanText(row[index]).toUpperCase();
+          if (!['X', 'SI', 'SÍ', 'YES', '1', 'TRUE'].includes(value)) return;
+          const existing = record.servicios.find((item) => normalizeFilterText(item.nombre) === normalizeFilterText(service));
+          const startYear = yearIndex >= 0 ? cleanText(row[yearIndex]) : '';
+          if (existing) {
+            existing.anioInicio = existing.anioInicio || startYear;
+          } else record.servicios.push({ nombre: service, anioInicio: startYear, consumo2026: true });
+        });
+        if (indexes.notes >= 0 && cleanText(row[indexes.notes])) {
+          record.novedades.push({ fecha: '', titulo: 'Nota', detalle: cleanText(row[indexes.notes]) });
+        }
+        if (indexes.negotiation >= 0 && cleanText(row[indexes.negotiation])) {
+          record.negociaciones.push(cleanText(row[indexes.negotiation]));
+        }
+        if (indexes.billingTitle >= 0 || indexes.billingNotes >= 0) {
+          const title = indexes.billingTitle >= 0 ? cleanText(row[indexes.billingTitle]) : '';
+          const detail = indexes.billingNotes >= 0 ? cleanText(row[indexes.billingNotes]) : '';
+          const date = indexes.billingDate >= 0 ? parseFinancialDate(row[indexes.billingDate]) : '';
+          if (title || detail) record.novedades.push({ fecha: date, titulo: title || 'Novedad de facturación', detalle: detail });
+        }
+        if (indexes.fee2025 >= 0 && row[indexes.fee2025] !== '' && !record.tarifa2025) record.tarifa2025 = row[indexes.fee2025];
+        if (indexes.currentStatus >= 0 && cleanText(row[indexes.currentStatus])) record.estadoActual = cleanText(row[indexes.currentStatus]);
+        if (indexes.assets >= 0 && row[indexes.assets] !== '' && !record.activos) record.activos = row[indexes.assets];
+        if (indexes.employees >= 0 && row[indexes.employees] !== '' && !record.empleados) record.empleados = row[indexes.employees];
+        if (indexes.meeting >= 0 && cleanText(row[indexes.meeting]) && !record.reunionFidelizacion) record.reunionFidelizacion = formatFinancialDateOrText(row[indexes.meeting]);
+        record.sourceRows.push(rowIndex);
+        records[key] = record;
+      }
+      Object.entries(records).forEach(([key, record]) => {
+        const hasFinancialData = record.nit || record.smlv || Object.values(record.pagos).some((payment) => payment.monto !== '') || record.fechaAfiliacion;
+        if (hasFinancialData) return;
+        const normalizedName = normalizeFinancialHeader(record.nombre);
+        const candidates = Object.entries(records).filter(([candidateKey, candidate]) => {
+          if (candidateKey === key || !candidate.nit) return false;
+          const normalizedCandidate = normalizeFinancialHeader(candidate.nombre);
+          let commonPrefixLength = 0;
+          while (commonPrefixLength < normalizedName.length && commonPrefixLength < normalizedCandidate.length &&
+            normalizedName[commonPrefixLength] === normalizedCandidate[commonPrefixLength]) commonPrefixLength++;
+          return normalizedName.includes(normalizedCandidate) || normalizedCandidate.includes(normalizedName) || commonPrefixLength >= 15;
+        });
+        if (candidates.length !== 1) return;
+        const [targetKey, target] = candidates[0];
+        record.servicios.forEach((service) => {
+          if (!target.servicios.some((existing) => normalizeFilterText(existing.nombre) === normalizeFilterText(service.nombre))) {
+            target.servicios.push(service);
+          }
+        });
+        target.negociaciones.push(...record.negociaciones);
+        target.novedades.push(...record.novedades);
+        target.sourceRows.push(...record.sourceRows);
+        if (record.notas && !target.notas) target.notas = record.notas;
+        records[targetKey] = target;
+        delete records[key];
+      });
+      return records;
+    }
+
+    function renderFinancialCompanyOptions(searchTerm = '') {
+      const select = document.getElementById('financialCompanySelect');
+      const companySearch = document.getElementById('financialCompanySearch');
+      if (!select) return;
+      const companies = Object.keys(financialCompanyData).sort();
+      const query = normalizeFilterText(searchTerm || companySearch.value || '');
+      const filtered = companies.filter((name) => {
+        const record = getFinancialCompanyRecord(name);
+        return normalizeFilterText(`${name} ${record.nit}`).includes(query);
+      });
+      if (!filtered.length) {
+        select.innerHTML = '<option value="">No hay empresas disponibles</option>';
+        currentFinancialCompany = '';
+        document.getElementById('financialCompanyViewBtn').disabled = true;
+        updateFinancialCompanyView();
+        return;
+      }
+
+      const selectedValue = filtered.includes(currentFinancialCompany) ? currentFinancialCompany : filtered[0];
+      select.innerHTML = filtered.map((name) => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`).join('');
+      select.value = selectedValue;
+      currentFinancialCompany = selectedValue;
+      document.getElementById('financialCompanyViewBtn').disabled = false;
+      updateFinancialCompanyView();
+    }
+
+    function renderFinancialServices(company) {
+      const record = getFinancialCompanyRecord(company);
+      const list = document.getElementById('financialServiceList');
+      if (!list) return;
+      if (!record.servicios || !record.servicios.length) {
+        list.innerHTML = '<span class="text-xs text-slate-500">No se registran servicios activos para esta empresa en 2026.</span>';
+        return;
+      }
+      list.innerHTML = record.servicios.map((service) => `
+        <span class="bg-blue-50 text-ceo-blue border border-blue-100 px-2.5 py-1 rounded-full text-xs font-semibold">
+          ${escapeHtml(service.nombre)} · ${service.anioInicio || 'año de inicio pendiente'}
+        </span>
+      `).join('');
+    }
+
+    function renderFinancialNotes(company) {
+      const record = getFinancialCompanyRecord(company);
+      const notesContainer = document.getElementById('financialNotesList');
+      if (!notesContainer) return;
+      const notes = [
+        ...(record.negociaciones || []).map((note) => ({ titulo: 'Negociación especial', detalle: note })),
+        ...(record.novedades || [])
+      ].filter((note) => note && (note.titulo || note.detalle));
+      if (!notes.length) {
+        notesContainer.innerHTML = '<p class="text-xs text-slate-500">No se registran negociaciones ni novedades para esta empresa.</p>';
+        return;
+      }
+      notesContainer.innerHTML = notes.slice(0, 8).map((note) => `
+        <div class="border-l-4 border-amber-400 bg-amber-50 rounded-r-lg p-3">
+          <p class="text-xs font-bold text-slate-700">${escapeHtml([note.fecha ? formatFinancialDateOrText(note.fecha) : '', note.titulo].filter(Boolean).join(' · ') || 'Observación')}</p>
+          <p class="text-xs text-slate-700 mt-1">${escapeHtml(note.detalle || '')}</p>
+        </div>
+      `).join('');
+    }
+
+    function updateFinancialCompanyView() {
+      const select = document.getElementById('financialCompanySelect');
+      if (!select) return;
+      const selectedCompany = select.value || currentFinancialCompany || Object.keys(financialCompanyData)[0];
+      if (!selectedCompany) {
+        document.getElementById('financialCompanyViewBtn').disabled = true;
+        document.getElementById('financialCompanyPreview').classList.add('hidden');
+        return;
+      }
+      currentFinancialCompany = selectedCompany;
+      const record = getFinancialCompanyRecord(selectedCompany);
+      document.getElementById('financialCompanyViewBtn').disabled = false;
+      document.getElementById('financialCompanyPreview').classList.remove('hidden');
+      document.getElementById('financialSmmlvPct').textContent = formatPercentValue(record.porcentajeSMMLV);
+      document.getElementById('financialCuotaSostenimiento').textContent = formatMoneyValue(record.pagos.cuota?.monto);
+      document.getElementById('financialSostenibilidad').textContent = formatMoneyValue(record.pagos.sostenibilidad?.monto);
+      document.getElementById('financialSeguridad').textContent = formatMoneyValue(record.pagos.riesgo?.monto);
+      document.getElementById('financialProgramCount').textContent = record.servicios ? String(record.servicios.length) : '0';
+      document.getElementById('financialFechaAfiliacion').textContent = record.fechaAfiliacion ? formatFinancialDateOrText(record.fechaAfiliacion) : 'Sin dato';
+      document.getElementById('financialFechaRetiro').textContent = record.fechaRetiro ? formatFinancialDateOrText(record.fechaRetiro) : 'Sin dato';
+      document.getElementById('financialFechaReingreso').textContent = record.fechaReingreso ? formatFinancialDateOrText(record.fechaReingreso) : 'Sin dato';
+      document.getElementById('financialDetalleCuota').textContent = `${formatMoneyValue(record.pagos.cuota?.monto)}${record.pagos.cuota?.periodicidad ? ` · ${record.pagos.cuota.periodicidad.toLowerCase()}` : ''}`;
+      document.getElementById('financialDetalleSostenibilidad').textContent = formatMoneyValue(record.pagos.sostenibilidad?.monto);
+      document.getElementById('financialDetalleAmbiental').textContent = formatMoneyValue(record.pagos.ambiental?.monto);
+      document.getElementById('financialDetalleRiesgo').textContent = formatMoneyValue(record.pagos.riesgo?.monto);
+      renderFinancialServices(selectedCompany);
+      renderFinancialNotes(selectedCompany);
+      lucide.createIcons();
+    }
+
+    function openFinancialProfileModal() {
+      const company = document.getElementById('financialCompanySelect').value;
+      if (!company) return;
+      const record = getFinancialCompanyRecord(company);
+      const paymentValue = (key) => record.pagos[key]?.monto;
+      const paymentPeriod = (key) => record.pagos[key]?.periodicidad;
+      document.getElementById('financialProfileNit').textContent = `NIT: ${record.nit || 'Sin dato'}`;
+      document.getElementById('financialProfileName').textContent = record.nombre;
+      document.getElementById('financialProfileAffiliation').textContent = record.fechaAfiliacion ? formatFinancialDateOrText(record.fechaAfiliacion) : 'Sin dato';
+      document.getElementById('financialProfileCuota').textContent = formatMoneyValue(paymentValue('cuota'));
+      document.getElementById('financialProfileCuotaPeriod').textContent = paymentPeriod('cuota') || 'Periodicidad sin definir';
+      document.getElementById('financialProfilePercent').textContent = formatPercentValue(record.porcentajeSMMLV);
+      document.getElementById('financialProfileSmmlv').textContent = record.smlv ? `SMMLV: ${formatMoneyValue(record.smlv)}` : 'SMMLV sin dato';
+      document.getElementById('financialProfileSustainability').textContent = formatMoneyValue(paymentValue('sostenibilidad'));
+      document.getElementById('financialProfileRisk').textContent = formatMoneyValue(paymentValue('riesgo'));
+      document.getElementById('financialProfileJoin').textContent = record.fechaAfiliacion ? formatFinancialDateOrText(record.fechaAfiliacion) : 'Sin dato';
+      document.getElementById('financialProfileRetire').textContent = record.fechaRetiro ? formatFinancialDateOrText(record.fechaRetiro) : 'Sin dato';
+      document.getElementById('financialProfileRejoin').textContent = record.fechaReingreso ? formatFinancialDateOrText(record.fechaReingreso) : 'Sin dato';
+      const extraDetails = [
+        ['Tarifa 2025', formatMoneyValue(record.tarifa2025)],
+        ['Estado actual', record.estadoActual || 'Sin dato'],
+        ['Activos (cierre 2024)', formatMoneyValue(record.activos)],
+        ['Empleados', record.empleados || 'Sin dato'],
+        ['Reunión de fidelización', formatFinancialDateOrText(record.reunionFidelizacion) || 'Sin dato']
+      ];
+      document.getElementById('financialProfileExtra').innerHTML = extraDetails.map(([label, value]) =>
+        `<div class="bg-slate-50 border border-slate-100 rounded-xl p-3"><p class="text-[10px] font-bold uppercase text-slate-500">${escapeHtml(label)}</p><p class="text-sm font-bold text-slate-800 mt-1">${escapeHtml(value)}</p></div>`
+      ).join('');
+
+      const services = document.getElementById('financialProfileServices');
+      services.innerHTML = record.servicios.length
+        ? record.servicios.map((service) => `<span class="bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-full px-3 py-1.5 text-sm font-semibold">${escapeHtml(service.nombre)} <span class="text-emerald-700">${service.anioInicio || 'año de inicio pendiente'}</span></span>`).join('')
+        : '<p class="text-sm text-slate-500">No se registran servicios activos para 2026.</p>';
+
+      const payments = document.getElementById('financialProfilePayments');
+      payments.innerHTML = FINANCIAL_PAYMENT_OPTIONS.map((option) => {
+        const payment = record.pagos[option.key] || {};
+        const period = payment.periodicidad ? ` · ${escapeHtml(payment.periodicidad.toLowerCase())}` : '';
+        return `<div class="bg-slate-50 border border-slate-100 rounded-lg p-3"><p class="text-xs font-semibold text-slate-500">${escapeHtml(option.label)}</p><p class="text-sm font-bold text-slate-800 mt-1">${escapeHtml(formatMoneyValue(payment.monto))}${period}</p></div>`;
+      }).join('');
+
+      const notes = [
+        ...(record.notas ? [{ fecha: '', titulo: 'Nota', detalle: record.notas }] : []),
+        ...record.negociaciones.map((note) => ({ fecha: '', titulo: 'Negociación especial', detalle: note })),
+        ...record.novedades
+      ].filter((note) => note && (note.titulo || note.detalle));
+      document.getElementById('financialProfileNotes').innerHTML = notes.length
+        ? notes.map((note) => `<div class="bg-slate-50 border border-slate-100 rounded-xl p-3"><p class="text-xs font-bold text-slate-500">${escapeHtml([note.fecha ? formatFinancialDateOrText(note.fecha) : '', note.titulo].filter(Boolean).join(' · ') || 'Observación')}</p><p class="text-sm text-slate-700 mt-1 whitespace-pre-line">${escapeHtml(note.detalle || '')}</p></div>`).join('')
+        : '<p class="text-sm text-slate-500">No hay observaciones ni negociaciones registradas.</p>';
+
+      document.getElementById('financialProfileModal').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function closeFinancialProfileModal() {
+      document.getElementById('financialProfileModal').classList.add('hidden');
+    }
+
+    let financialPinAction = '';
+    let financialPinCompany = '';
+
+    function showFinancialPinModal(action) {
+      financialPinAction = action;
+      const isSetup = action === 'setup';
+      const isInitialSetup = isSetup && !getStoredFinancialPin();
+      document.getElementById('financialPinTitle').textContent = isSetup ? 'Configurar PIN de edición' : action === 'change-current' ? 'Cambiar PIN' : 'Validar PIN';
+      document.getElementById('financialPinDescription').textContent = isSetup
+        ? 'Cree un PIN personal de 4 dígitos. Este PIN se guarda en este navegador.'
+        : action === 'change-current'
+          ? 'Ingrese su PIN actual para poder cambiarlo.'
+          : 'Ingrese el PIN de 4 dígitos para editar esta hoja de vida.';
+      document.getElementById('financialPinConfirmWrapper').classList.toggle('hidden', !isSetup);
+      document.getElementById('financialPinSubmitBtn').textContent = isSetup ? 'Guardar PIN' : action === 'change-current' ? 'Continuar' : 'Validar PIN';
+      document.getElementById('financialPinInput').value = '';
+      document.getElementById('financialPinConfirmInput').value = '';
+      document.getElementById('financialPinError').classList.add('hidden');
+      document.getElementById('financialPinModal').classList.remove('hidden');
+      document.getElementById('financialPinInput').focus();
+      if (isInitialSetup) document.getElementById('financialPinDescription').textContent = 'Este navegador aún no tiene PIN. Cree uno personal de 4 dígitos y confírmelo.';
+    }
+
+    function closeFinancialPinModal() {
+      document.getElementById('financialPinModal').classList.add('hidden');
+      financialPinAction = '';
+      financialPinCompany = '';
+    }
+
+    function setFinancialPinError(message) {
+      const error = document.getElementById('financialPinError');
+      error.textContent = message;
+      error.classList.remove('hidden');
+    }
+
+    async function handleFinancialPinSubmit() {
+      const pin = document.getElementById('financialPinInput').value.trim();
+      if (!/^\d{4}$/.test(pin)) {
+        setFinancialPinError('El PIN debe tener exactamente 4 dígitos.');
+        return;
+      }
+      try {
+        if (financialPinAction === 'setup') {
+          const confirmation = document.getElementById('financialPinConfirmInput').value.trim();
+          if (pin !== confirmation) {
+            setFinancialPinError('Los PIN no coinciden. Verifique e intente de nuevo.');
+            return;
+          }
+          const saltBytes = window.crypto.getRandomValues(new Uint8Array(16));
+          const salt = Array.from(saltBytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
+          localStorage.setItem(FINANCIAL_PIN_KEY, `${salt}:${await hashFinancialPin(pin, salt)}`);
+          closeFinancialPinModal();
+          showNotice('PIN configurado en este navegador.', 'bg-ceo-blue');
+          return;
+        }
+
+        const savedPin = getStoredFinancialPin();
+        if (!savedPin) {
+          setFinancialPinError('No hay un PIN configurado. Cierre esta ventana y use “Configurar PIN”.');
+          return;
+        }
+        const [salt, savedHash] = savedPin.split(':');
+        if (await hashFinancialPin(pin, salt) !== savedHash) {
+          setFinancialPinError('PIN incorrecto. No se realizaron cambios.');
+          return;
+        }
+        if (financialPinAction === 'change-current') {
+          showFinancialPinModal('setup');
+          return;
+        }
+        const company = financialPinCompany;
+        closeFinancialPinModal();
+        prepareFinancialEditForm(company);
+      } catch (error) {
+        console.error(error);
+        setFinancialPinError(error.message || 'No fue posible validar el PIN en este navegador.');
+      }
+    }
+
+    function openFinancialEditModal() {
+      const company = document.getElementById('financialCompanySelect').value;
+      if (!company) return;
+      const savedPin = getStoredFinancialPin();
+      if (!savedPin) {
+        showNotice('Primero configure su PIN con el botón “Configurar PIN”.', 'bg-amber-600');
+        return;
+      }
+      financialPinCompany = company;
+      showFinancialPinModal('edit');
+    }
+
+    function prepareFinancialEditForm(company) {
+      const record = getFinancialCompanyRecord(company);
+      const form = document.getElementById('financialEditForm');
+      form.dataset.company = company;
+      document.getElementById('financialFormNombre').value = record.nombre;
+      document.getElementById('financialFormNit').value = record.nit || '';
+      document.getElementById('financialFormSmlv').value = record.smlv || '';
+      const percentage = Number(record.porcentajeSMMLV);
+      document.getElementById('financialFormPorcentaje').value = Number.isNaN(percentage) ? '' : Math.abs(percentage) <= 1.5 ? percentage * 100 : percentage;
+      FINANCIAL_PAYMENT_OPTIONS.slice(0, 4).forEach((option) => {
+        const payment = record.pagos[option.key] || {};
+        document.getElementById(option.amountId).value = payment.monto ?? '';
+        document.getElementById(option.periodId).value = payment.periodicidad || '';
+      });
+      document.getElementById('financialPaymentFields').innerHTML = FINANCIAL_PAYMENT_OPTIONS.slice(4).map((option) => {
+        const payment = record.pagos[option.key] || {};
+        return `<div class="bg-slate-50 border border-slate-200 rounded-lg p-3"><label class="block text-xs font-semibold text-slate-600 mb-2">${escapeHtml(option.label)}</label><div class="grid grid-cols-2 gap-2"><input data-financial-payment="${option.key}" aria-label="Valor ${escapeHtml(option.label)} en pesos" type="text" inputmode="decimal" value="${escapeHtml(payment.monto ?? '')}" placeholder="Valor COP" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm"><select data-financial-period="${option.key}" aria-label="Periodicidad ${escapeHtml(option.label)}" class="w-full bg-white border border-slate-300 rounded-lg px-2 py-2 text-sm"><option value="">Sin definir</option><option value="Mensual" ${payment.periodicidad === 'Mensual' ? 'selected' : ''}>Mensual</option><option value="Anual" ${payment.periodicidad === 'Anual' ? 'selected' : ''}>Anual</option></select></div></div>`;
+      }).join('');
+      document.getElementById('financialFormAfiliacion').value = record.fechaAfiliacion || '';
+      document.getElementById('financialFormRetiro').value = record.fechaRetiro || '';
+      document.getElementById('financialFormReingreso').value = record.fechaReingreso || '';
+      document.getElementById('financialFormTarifa2025').value = record.tarifa2025 ?? '';
+      document.getElementById('financialFormEstado').value = record.estadoActual || '';
+      document.getElementById('financialFormActivos').value = record.activos ?? '';
+      document.getElementById('financialFormEmpleados').value = record.empleados ?? '';
+      document.getElementById('financialFormReunion').value = record.reunionFidelizacion || '';
+      document.getElementById('financialFormNotas').value = record.notas || '';
+      document.getElementById('financialServiceChecklist').innerHTML = FINANCIAL_SERVICE_OPTIONS.filter((service) => service !== 'Estrategia').map((service) => {
+        const item = record.servicios.find((entry) => normalizeFilterText(entry.nombre) === normalizeFilterText(service));
+        return `<label class="flex items-start gap-2 text-xs text-slate-600 bg-slate-50 border border-slate-200 rounded-lg px-2 py-2"><input type="checkbox" value="${escapeHtml(service)}" ${item ? 'checked' : ''} class="mt-0.5"><span class="flex-1">${escapeHtml(service)}</span><input type="number" min="1900" max="2100" step="1" value="${escapeHtml(item?.anioInicio || '')}" aria-label="Año de inicio: ${escapeHtml(service)}" placeholder="Desde año" class="w-24 bg-white border border-slate-300 rounded px-2 py-1 text-[11px]"></label>`;
+      }).join('');
+      document.getElementById('financialProfileModal').classList.add('hidden');
+      document.getElementById('financialEditModal').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function getFinancialRowsFromWorksheet() {
+      return XLSX.utils.sheet_to_json(financialWorksheet, { header: 1, defval: '' });
+    }
+
+    function ensureFinancialHeaderColumn(header) {
+      const existing = findFinancialHeaderIndex(financialHeaderColumns, [header]);
+      if (existing >= 0) return existing;
+      const newIndex = financialHeaderColumns.length;
+      financialHeaderColumns[newIndex] = header;
+      const cellAddress = XLSX.utils.encode_cell({ r: financialHeaderRowIndex, c: newIndex });
+      financialWorksheet[cellAddress] = { t: 's', v: header };
+      financialCellUpdates.set(cellAddress, header);
+      const range = XLSX.utils.decode_range(financialWorksheet['!ref']);
+      range.e.c = Math.max(range.e.c, newIndex);
+      financialWorksheet['!ref'] = XLSX.utils.encode_range(range);
+      return newIndex;
+    }
+
+    function writeFinancialCell(rowIndex, columnIndex, value) {
+      const address = XLSX.utils.encode_cell({ r: rowIndex, c: columnIndex });
+      if (value === '' || value === null || value === undefined) {
+        financialWorksheet[address] = { t: 's', v: '' };
+        financialCellUpdates.set(address, '');
+      } else {
+        const header = normalizeFinancialHeader(financialHeaderColumns[columnIndex] || '');
+        const isDateColumn = header.startsWith('fecha') || header === 'reunionfidelizacion';
+        const dateMatch = isDateColumn && typeof value === 'string'
+          ? value.match(/^(\d{4})-(\d{2})-(\d{2})$/)
+          : null;
+        let cellValue = value;
+        if (dateMatch) {
+          const [, yearText, monthText, dayText] = dateMatch;
+          const year = Number(yearText);
+          const month = Number(monthText);
+          const day = Number(dayText);
+          const date = new Date(Date.UTC(year, month - 1, day));
+          if (date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day) {
+            cellValue = (date.getTime() - Date.UTC(1899, 11, 30)) / 86400000;
+          }
+        }
+        financialWorksheet[address] = typeof cellValue === 'number'
+          ? { t: 'n', v: cellValue }
+          : { t: 's', v: String(cellValue) };
+        financialCellUpdates.set(address, cellValue);
+      }
+      const range = XLSX.utils.decode_range(financialWorksheet['!ref']);
+      range.e.r = Math.max(range.e.r, rowIndex);
+      range.e.c = Math.max(range.e.c, columnIndex);
+      financialWorksheet['!ref'] = XLSX.utils.encode_range(range);
+    }
+
+    function writeFinancialColumn(rowIndex, header, value) {
+      writeFinancialCell(rowIndex, ensureFinancialHeaderColumn(header), value);
+    }
+
+    function parseFinancialWorkbookXml(xml, description) {
+      const documentXml = new DOMParser().parseFromString(xml, 'application/xml');
+      if (documentXml.getElementsByTagName('parsererror').length) {
+        throw new Error(`No fue posible leer la estructura XML de ${description}.`);
+      }
+      return documentXml;
+    }
+
+    function getFinancialWorksheetPath(workbookXml, relationshipsXml) {
+      const spreadsheetNamespace = 'http://schemas.openxmlformats.org/spreadsheetml/2006/main';
+      const relationshipNamespace = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
+      const packageRelationshipNamespace = 'http://schemas.openxmlformats.org/package/2006/relationships';
+      const workbookDocument = parseFinancialWorkbookXml(workbookXml, 'xl/workbook.xml');
+      const relationshipsDocument = parseFinancialWorkbookXml(relationshipsXml, 'xl/_rels/workbook.xml.rels');
+      const sheet = Array.from(workbookDocument.getElementsByTagNameNS(spreadsheetNamespace, 'sheet'))
+        .find((item) => item.getAttribute('name') === financialWorksheetName);
+      if (!sheet) throw new Error(`No se encontró la hoja “${financialWorksheetName}” en el archivo original.`);
+      const relationshipId = sheet.getAttributeNS(relationshipNamespace, 'id') || sheet.getAttribute('r:id');
+      const relationship = Array.from(relationshipsDocument.getElementsByTagNameNS(packageRelationshipNamespace, 'Relationship'))
+        .find((item) => item.getAttribute('Id') === relationshipId);
+      if (!relationship) throw new Error(`No se encontró la relación de la hoja “${financialWorksheetName}”.`);
+      const target = relationship.getAttribute('Target');
+      return decodeURIComponent(new URL(target, 'https://workbook.local/xl/workbook.xml').pathname.slice(1));
+    }
+
+    function financialCellColumnIndex(address) {
+      const column = address.match(/^[A-Z]+/i)?.[0].toUpperCase();
+      if (!column) throw new Error(`La referencia de celda “${address}” no es válida.`);
+      return Array.from(column).reduce((index, letter) => index * 26 + letter.charCodeAt(0) - 64, 0) - 1;
+    }
+
+    function getFinancialTemplateStyleId(worksheetDocument, rowNumber, header) {
+      const normalizedHeader = normalizeFinancialHeader(header);
+      const isCurrencyColumn = FINANCIAL_PAYMENT_OPTIONS.some((option) =>
+        normalizeFinancialHeader(option.header) === normalizedHeader
+      ) || ['smlv2026', 'tarifa2025'].includes(normalizedHeader);
+      const isDateColumn = normalizedHeader.startsWith('fecha') || normalizedHeader === 'reunionfidelizacion';
+      const isPercentageColumn = ['quepagadelsmmlv', 'quepagadelsmlv', 'smmlv', 'porcentajesmmlv']
+        .includes(normalizedHeader);
+      const templateHeaders = isCurrencyColumn
+        ? ['CEO 2026', 'SMLV 2026']
+        : isDateColumn
+          ? ['Fecha de Ingreso']
+          : isPercentageColumn
+            ? ['% que paga del SMMLV']
+            : ['Empresa'];
+      const templateColumn = findFinancialHeaderIndex(financialHeaderColumns, templateHeaders);
+      if (templateColumn < 0) return '';
+      const templateRow = rowNumber === financialHeaderRowIndex + 1
+        ? financialHeaderRowIndex
+        : financialHeaderRowIndex + 1;
+      const templateAddress = XLSX.utils.encode_cell({ r: templateRow, c: templateColumn });
+      return Array.from(worksheetDocument.getElementsByTagNameNS(
+        'http://schemas.openxmlformats.org/spreadsheetml/2006/main',
+        'c'
+      )).find((cell) => cell.getAttribute('r') === templateAddress)?.getAttribute('s') || '';
+    }
+
+    function applyFinancialCellUpdates(sheetXml) {
+      const spreadsheetNamespace = 'http://schemas.openxmlformats.org/spreadsheetml/2006/main';
+      const xmlNamespace = 'http://www.w3.org/XML/1998/namespace';
+      const worksheetDocument = parseFinancialWorkbookXml(sheetXml, financialWorksheetName);
+      const sheetData = worksheetDocument.getElementsByTagNameNS(spreadsheetNamespace, 'sheetData')[0];
+      if (!sheetData) throw new Error(`La hoja “${financialWorksheetName}” no contiene una tabla de datos válida.`);
+      const dimension = worksheetDocument.getElementsByTagNameNS(spreadsheetNamespace, 'dimension')[0];
+      const originalDimension = dimension?.getAttribute('ref') || '';
+
+      const updates = Array.from(financialCellUpdates.entries()).map(([address, value]) => {
+        const match = address.match(/^([A-Z]+)(\d+)$/i);
+        if (!match) throw new Error(`La referencia de celda “${address}” no es válida.`);
+        return { address, value, rowNumber: Number(match[2]), columnIndex: financialCellColumnIndex(address) };
+      }).sort((left, right) => left.rowNumber - right.rowNumber || left.columnIndex - right.columnIndex);
+
+      updates.forEach(({ address, value, rowNumber, columnIndex }) => {
+        let row = Array.from(sheetData.children).find((element) =>
+          element.localName === 'row' && Number(element.getAttribute('r')) === rowNumber
+        );
+        if (!row) {
+          row = worksheetDocument.createElementNS(spreadsheetNamespace, 'row');
+          row.setAttribute('r', String(rowNumber));
+          const nextRow = Array.from(sheetData.children).find((element) =>
+            element.localName === 'row' && Number(element.getAttribute('r')) > rowNumber
+          );
+          sheetData.insertBefore(row, nextRow || null);
+        }
+
+        const cells = Array.from(row.children).filter((element) => element.localName === 'c');
+        let cell = cells.find((element) => element.getAttribute('r') === address);
+        if (!cell) {
+          cell = worksheetDocument.createElementNS(spreadsheetNamespace, 'c');
+          cell.setAttribute('r', address);
+          const header = financialHeaderColumns[columnIndex] || '';
+          const templateStyleId = getFinancialTemplateStyleId(worksheetDocument, rowNumber, header);
+          if (templateStyleId) cell.setAttribute('s', templateStyleId);
+          const nextCell = cells.find((element) => financialCellColumnIndex(element.getAttribute('r')) > columnIndex);
+          const rowExtension = Array.from(row.children).find((element) => element.localName === 'extLst');
+          row.insertBefore(cell, nextCell || rowExtension || null);
+        }
+
+        Array.from(cell.children)
+          .filter((element) => ['f', 'v', 'is'].includes(element.localName))
+          .forEach((element) => cell.removeChild(element));
+        if (typeof value === 'number') {
+          if (!Number.isFinite(value)) throw new Error(`La celda “${address}” no contiene un número válido.`);
+          cell.removeAttribute('t');
+          const valueElement = worksheetDocument.createElementNS(spreadsheetNamespace, 'v');
+          valueElement.textContent = String(value);
+          cell.appendChild(valueElement);
+        } else if (value !== '') {
+          cell.setAttribute('t', 'inlineStr');
+          const inlineString = worksheetDocument.createElementNS(spreadsheetNamespace, 'is');
+          const text = worksheetDocument.createElementNS(spreadsheetNamespace, 't');
+          const stringValue = String(value);
+          if (stringValue.trim() !== stringValue) text.setAttributeNS(xmlNamespace, 'xml:space', 'preserve');
+          text.textContent = stringValue;
+          inlineString.appendChild(text);
+          cell.appendChild(inlineString);
+        } else {
+          cell.removeAttribute('t');
+        }
+      });
+
+      if (dimension && financialWorksheet['!ref']) {
+        dimension.setAttribute('ref', financialWorksheet['!ref']);
+      }
+      const worksheetRange = financialWorksheet['!ref']
+        ? XLSX.utils.decode_range(financialWorksheet['!ref'])
+        : null;
+      if (originalDimension && worksheetRange) {
+        Array.from(worksheetDocument.getElementsByTagNameNS(spreadsheetNamespace, 'autoFilter'))
+          .forEach((autoFilter) => {
+            const filterRef = autoFilter.getAttribute('ref');
+            if (!filterRef) return;
+            const filterRange = XLSX.utils.decode_range(filterRef);
+            if (filterRange.s.r === worksheetRange.s.r && filterRange.s.c === worksheetRange.s.c &&
+              filterRange.e.r === worksheetRange.e.r && filterRange.e.c < worksheetRange.e.c) {
+              filterRange.e.c = worksheetRange.e.c;
+              autoFilter.setAttribute('ref', XLSX.utils.encode_range(filterRange));
+            }
+          });
+      }
+
+      return new XMLSerializer().serializeToString(worksheetDocument);
+    }
+
+    function downloadFinancialWorkbookBlob(blob, fileName) {
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    async function exportFinancialWorkbook() {
+      if (!financialWorkbook || !financialWorksheet || !financialWorkbookSource) {
+        showNotice('Cargue primero el Excel financiero.', 'bg-amber-600');
+        return;
+      }
+      try {
+        const baseName = financialFileName.replace(/\.(xlsx|xls)$/i, '');
+        const outputFileName = `${baseName} - actualizado.xlsx`;
+        if (!/\.xlsx$/i.test(financialFileName)) {
+          XLSX.writeFile(financialWorkbook, outputFileName);
+          document.getElementById('financialWorkbookStatus').textContent = 'Se exportó el archivo .xls a .xlsx. Para conservar exactamente sus formatos, guárdelo como .xlsx antes de cargarlo.';
+          showNotice('Excel exportado. Para conservar el formato original, cargue un archivo .xlsx.', 'bg-amber-600');
+          return;
+        }
+
+        const zip = await JSZip.loadAsync(financialWorkbookSource);
+        const workbookFile = zip.file('xl/workbook.xml');
+        const relationshipsFile = zip.file('xl/_rels/workbook.xml.rels');
+        if (!workbookFile || !relationshipsFile) throw new Error('El archivo no contiene la estructura de un libro .xlsx válido.');
+        const [workbookXml, relationshipsXml] = await Promise.all([
+          workbookFile.async('string'),
+          relationshipsFile.async('string')
+        ]);
+        const worksheetPath = getFinancialWorksheetPath(workbookXml, relationshipsXml);
+        const worksheetFile = zip.file(worksheetPath);
+        if (!worksheetFile) throw new Error(`No se encontró el XML de la hoja “${financialWorksheetName}”.`);
+        const worksheetXml = await worksheetFile.async('string');
+        zip.file(worksheetPath, applyFinancialCellUpdates(worksheetXml));
+        const blob = await zip.generateAsync({
+          type: 'blob',
+          mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          compression: 'DEFLATE',
+          compressionOptions: { level: 6 }
+        });
+        downloadFinancialWorkbookBlob(blob, outputFileName);
+        document.getElementById('financialWorkbookStatus').textContent = 'Se descargó el Excel actualizado. Use ese archivo la próxima vez que abra el módulo.';
+        showNotice('Excel actualizado descargado.', 'bg-emerald-600');
+      } catch (error) {
+        console.error(error);
+        const message = error.message || 'No fue posible descargar el Excel actualizado.';
+        document.getElementById('financialWorkbookStatus').textContent = message;
+        showNotice(message, 'bg-red-600');
+      }
+    }
+
+    function saveFinancialEditForm() {
+      const form = document.getElementById('financialEditForm');
+      if (!form.dataset.company || !financialWorkbook || !financialWorksheet) return;
+      const originalKey = form.dataset.company;
+      const record = JSON.parse(JSON.stringify(getFinancialCompanyRecord(originalKey)));
+      const newName = cleanText(document.getElementById('financialFormNombre').value);
+      if (!newName) {
+        showNotice('El nombre de la empresa es obligatorio.', 'bg-red-600');
+        return;
+      }
+      if (newName !== originalKey && financialCompanyData[normalizeFinancialCompanyName(newName)]) {
+        showNotice('Ya existe una empresa con ese nombre en el Excel.', 'bg-red-600');
+        return;
+      }
+      record.nombre = newName;
+      record.nit = cleanText(document.getElementById('financialFormNit').value);
+      record.smlv = document.getElementById('financialFormSmlv').value;
+      record.porcentajeSMMLV = document.getElementById('financialFormPorcentaje').value;
+      record.fechaAfiliacion = document.getElementById('financialFormAfiliacion').value;
+      record.fechaRetiro = document.getElementById('financialFormRetiro').value;
+      record.fechaReingreso = document.getElementById('financialFormReingreso').value;
+      record.tarifa2025 = document.getElementById('financialFormTarifa2025').value;
+      record.estadoActual = document.getElementById('financialFormEstado').value.trim();
+      record.activos = document.getElementById('financialFormActivos').value;
+      record.empleados = document.getElementById('financialFormEmpleados').value;
+      record.reunionFidelizacion = document.getElementById('financialFormReunion').value.trim();
+      record.notas = document.getElementById('financialFormNotas').value.trim();
+      let isValid = true;
+      FINANCIAL_PAYMENT_OPTIONS.forEach((option) => {
+        const amountElement = option.amountId
+          ? document.getElementById(option.amountId)
+          : document.querySelector(`[data-financial-payment="${option.key}"]`);
+        const periodElement = option.periodId
+          ? document.getElementById(option.periodId)
+          : document.querySelector(`[data-financial-period="${option.key}"]`);
+        const amount = amountElement.value.trim();
+        const parsedAmount = amount === '' ? '' : parseNumericValue(amount);
+        const normalizedAmount = parsedAmount === null ? amount : parsedAmount;
+        record.pagos[option.key] = { monto: normalizedAmount, periodicidad: periodElement.value };
+      });
+      if (!isValid) return;
+      const serviceLabels = document.querySelectorAll('#financialServiceChecklist label');
+      const selectedServices = Array.from(serviceLabels).reduce((services, label) => {
+        const checkbox = label.querySelector('input[type="checkbox"]');
+        if (!checkbox.checked) return services;
+        const yearInput = label.querySelector('input[type="number"]');
+        const yearValue = yearInput.value ? Number(yearInput.value) : '';
+        if (yearValue !== '' && (!Number.isInteger(yearValue) || yearValue < 1900 || yearValue > 2100)) {
+          showNotice(`Verifique el año de inicio para “${checkbox.value}”.`, 'bg-red-600');
+          isValid = false;
+          return services;
+        }
+        services.push({ nombre: checkbox.value, anioInicio: yearValue, consumo2026: true });
+        return services;
+      }, []);
+      if (!isValid) return;
+      record.servicios = selectedServices;
+
+      const numericFields = [
+        ['SMMLV', record.smlv],
+        ['Activos', record.activos],
+        ['Empleados', record.empleados]
+      ];
+      const invalidNumericField = numericFields.find(([, value]) => value !== '' && !Number.isFinite(Number(value)));
+      if (invalidNumericField) {
+        showNotice(`El campo “${invalidNumericField[0]}” debe ser un número válido.`, 'bg-red-600');
+        return;
+      }
+      if (record.porcentajeSMMLV !== '') {
+        const percentageValue = Number(record.porcentajeSMMLV);
+        if (!Number.isFinite(percentageValue) || percentageValue < 0) {
+          showNotice('El porcentaje del SMMLV debe ser un número positivo.', 'bg-red-600');
+          return;
+        }
+      }
+      const primaryRow = record.sourceRow;
+      const companyColumn = findFinancialHeaderIndex(financialHeaderColumns, ['Empresa', 'Razón social']);
+      const nitColumn = findFinancialHeaderIndex(financialHeaderColumns, ['NIT']);
+      const smlvColumn = findFinancialHeaderIndex(financialHeaderColumns, ['SMLV 2026', 'SMMLV 2026']);
+      const percentColumn = findFinancialHeaderIndex(financialHeaderColumns, ['% que paga del SMMLV', '% que paga del SMLV', 'Porcentaje SMLV', '% SMMLV']);
+      record.sourceRows.forEach((rowIndex) => {
+        writeFinancialCell(rowIndex, companyColumn, record.nombre);
+        FINANCIAL_SERVICE_OPTIONS.filter((service) => service !== 'Estrategia').forEach((service) => {
+          const serviceColumn = ensureFinancialHeaderColumn(service);
+          writeFinancialCell(rowIndex, serviceColumn, '');
+        });
+      });
+      if (nitColumn >= 0) writeFinancialCell(primaryRow, nitColumn, record.nit);
+      if (smlvColumn >= 0) writeFinancialCell(primaryRow, smlvColumn, record.smlv === '' ? '' : Number(record.smlv));
+      if (percentColumn >= 0) {
+        const percentage = record.porcentajeSMMLV === '' ? '' : Number(record.porcentajeSMMLV) / 100;
+        writeFinancialCell(primaryRow, percentColumn, percentage);
+      }
+      Object.entries({
+        'Fecha de Ingreso': record.fechaAfiliacion,
+        'Fecha de retiro': record.fechaRetiro,
+        'Fecha de reingreso': record.fechaReingreso,
+        Nota: record.notas,
+        'Tarifa 2025': record.tarifa2025 === '' ? '' : parseNumericValue(record.tarifa2025) ?? String(record.tarifa2025),
+        'Estado actual': record.estadoActual,
+        'Activos a 31 de diciembre 2024': record.activos === '' ? '' : Number(record.activos),
+        Empleados: record.empleados === '' ? '' : Number(record.empleados),
+        'Reunión fidelización': record.reunionFidelizacion
+      }).forEach(([header, value]) => writeFinancialColumn(primaryRow, header, value));
+      FINANCIAL_PAYMENT_OPTIONS.forEach((option) => {
+        const payment = record.pagos[option.key] || {};
+        const parsedAmount = typeof payment.monto === 'number' ? payment.monto : parseNumericValue(payment.monto);
+        const exportAmount = payment.monto === '' ? '' : parsedAmount === null ? String(payment.monto) : parsedAmount;
+        writeFinancialColumn(primaryRow, option.header, exportAmount);
+        writeFinancialColumn(primaryRow, `Periodicidad ${option.label}`, payment.periodicidad || '');
+      });
+      record.servicios.forEach((service) => {
+        writeFinancialColumn(primaryRow, service.nombre, 'X');
+        writeFinancialColumn(primaryRow, `Año de inicio - ${service.nombre}`, service.anioInicio || '');
+      });
+
+      if (normalizeFinancialCompanyName(newName) !== normalizeFinancialCompanyName(originalKey)) {
+        delete financialCompanyData[normalizeFinancialCompanyName(originalKey)];
+      }
+      financialCompanyData[normalizeFinancialCompanyName(newName)] = record;
+      document.getElementById('financialEditModal').classList.add('hidden');
+      renderFinancialCompanyOptions(document.getElementById('financialCompanySearch').value);
+      openFinancialProfileModal();
+      exportFinancialWorkbook();
+    }
+
+    function showNotice(message, className = 'bg-ceo-blue') {
+      const notice = document.createElement('div');
+      notice.className = `fixed bottom-4 right-4 ${className} text-white px-4 py-2 rounded-lg shadow-lg text-xs font-semibold z-50`;
+      notice.textContent = message;
+      document.body.appendChild(notice);
+      setTimeout(() => notice.remove(), 4000);
+    }
+
+    async function hashFinancialPin(pin, salt) {
+      if (!window.crypto?.subtle) throw new Error('El navegador no permite validar el PIN de forma segura en esta página.');
+      const input = new TextEncoder().encode(`${salt}:${pin}`);
+      const digest = await window.crypto.subtle.digest('SHA-256', input);
+      return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
+    }
+
+    function configureFinancialPIN() {
+      showFinancialPinModal(getStoredFinancialPin() ? 'change-current' : 'setup');
     }
 
     const sustainableServiceRules = {
@@ -1633,6 +3036,14 @@
     }
 
     function switchView(view, moduleName = null) {
+      if (view !== 'financial-company' && Object.keys(processedData.matrix).length === 0) {
+        showNotice('Para consultar esta vista, cargue primero el Excel de diagnóstico.', 'bg-amber-600');
+        return;
+      }
+      if (view === 'financial-company') {
+        document.getElementById('noDataState').classList.add('hidden');
+        document.getElementById('dataContent').classList.remove('hidden');
+      }
       activeView = view;
       currentModule = moduleName;
       document.querySelectorAll('.nav-btn').forEach(btn => {
@@ -1642,6 +3053,7 @@
       document.getElementById('viewRegional').classList.add('hidden');
       document.getElementById('viewMunicipal').classList.add('hidden');
       document.getElementById('viewCompany').classList.add('hidden');
+      document.getElementById('viewFinancialCompany').classList.add('hidden');
       document.getElementById('viewSustainableModel').classList.add('hidden');
       document.getElementById('viewModule').classList.add('hidden');
 
@@ -1664,6 +3076,11 @@
         document.getElementById('nav-company').classList.remove('text-slate-600');
         document.getElementById('viewCompany').classList.remove('hidden');
         updateCompanyView();
+      } else if (view === 'financial-company') {
+        document.getElementById('nav-financial-company').classList.add('bg-ceo-blue', 'text-white');
+        document.getElementById('nav-financial-company').classList.remove('text-slate-600');
+        document.getElementById('viewFinancialCompany').classList.remove('hidden');
+        renderFinancialCompanyOptions();
       } else if (view === 'sustainable-model') {
         document.getElementById('nav-sustainable-model').classList.add('bg-ceo-blue', 'text-white');
         document.getElementById('nav-sustainable-model').classList.remove('text-slate-600');
