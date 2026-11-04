@@ -1319,7 +1319,7 @@
 
       const escapedTitle = `'${targetSheet.title.replace(/'/g, "''")}'`;
       const valuesUrl = new URL(`https://sheets.googleapis.com/v4/spreadsheets/${GOOGLE_SHEET_ID}/values:batchGet`);
-      [`${escapedTitle}!A:A`, `${escapedTitle}!D:E`, `${escapedTitle}!H:BP`]
+      [`${escapedTitle}!A2:A`, `${escapedTitle}!D2:E`, `${escapedTitle}!H2:BP`]
         .forEach(range => valuesUrl.searchParams.append('ranges', range));
       valuesUrl.searchParams.set('valueRenderOption', 'FORMATTED_VALUE');
       const result = await googleApiGet(valuesUrl, accessToken);
@@ -1332,30 +1332,32 @@
     }
 
     function processGoogleFormResponses(timestampRows, companyDetailRows, answerRows) {
-      const headerRowIndex = companyDetailRows.findIndex(row =>
+      const companyHeaderRowIndex = companyDetailRows.findIndex(row =>
         row.some(header => {
           const normalized = normalizeFilterText(header);
           return normalized.includes('empresa') || normalized.includes('razon social');
         })
       );
-      if (headerRowIndex < 0) {
+      if (companyHeaderRowIndex < 0) {
         throw new Error('No se encontró el encabezado “Razón social de la empresa” en la columna D.');
       }
 
-      const headers = answerRows[headerRowIndex] || [];
+      const answerHeaderRowIndex = answerRows.findIndex(row => row.some(header => cleanText(header)));
+      const headers = answerRows[answerHeaderRowIndex] || [];
       const questions = headers.map(cleanText);
       if (!questions.some(Boolean)) {
-        throw new Error(`No se encontraron encabezados de preguntas en la fila ${headerRowIndex + 1}, desde la columna H.`);
+        throw new Error('No se encontraron encabezados de preguntas desde la columna H.');
       }
 
-      const companyHeaders = companyDetailRows[headerRowIndex] || [];
+      const companyHeaders = companyDetailRows[companyHeaderRowIndex] || [];
       const companyColumn = companyHeaders.findIndex(header => normalizeFilterText(header).includes('empresa') || normalizeFilterText(header).includes('razon social'));
       const roleColumn = companyHeaders.findIndex(header => normalizeFilterText(header).includes('cargo'));
+      const firstResponseRowIndex = Math.max(companyHeaderRowIndex, answerHeaderRowIndex) + 1;
 
       const nextData = { companies: new Set(), pendingCompanies: new Set(), questions: [], matrix: {}, municipalities: new Set(), companyMetadata: {} };
       nextData.questions = questions.filter(Boolean);
       const rowCount = Math.max(timestampRows.length, companyDetailRows.length, answerRows.length);
-      for (let rowIndex = headerRowIndex + 1; rowIndex < rowCount; rowIndex++) {
+      for (let rowIndex = firstResponseRowIndex; rowIndex < rowCount; rowIndex++) {
         const companyDetails = companyDetailRows[rowIndex] || [];
         const company = cleanText(companyDetails[companyColumn]);
         if (!company) continue;
