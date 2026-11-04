@@ -14,6 +14,7 @@
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://accounts.google.com/gsi/client"></script>
   <script>
     tailwind.config = {
       theme: {
@@ -82,7 +83,7 @@
 <body class="text-slate-800 antialiased flex flex-col min-h-screen">
   
   <header class="bg-ceo-blue text-white shadow-lg sticky top-0 z-50 border-b-4 border-ceo-green">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 min-h-20 py-2 flex flex-wrap items-center justify-between gap-3">
       <div class="flex items-center space-x-4">
         <div class="bg-white p-2 rounded-lg shadow-md flex items-center justify-center">
           <img src="CEO_Logotipo.jpg" alt="Corporación Empresarial del Oriente Antioqueño" class="h-8 w-auto max-w-[180px] object-contain" onerror="this.classList.add('hidden'); this.nextElementSibling.classList.remove('hidden');">
@@ -97,7 +98,17 @@
           <p class="text-xs text-emerald-300 font-medium">Corporación Empresarial del Oriente Antioqueño</p>
         </div>
       </div>
-      <div class="flex items-center space-x-3">
+      <div class="flex flex-wrap items-center justify-end gap-2">
+        <div class="flex flex-col items-end">
+          <button id="googleSheetsConnectBtn" type="button" class="bg-white/10 hover:bg-white/20 text-white text-xs md:text-sm font-semibold px-3 py-2.5 rounded-lg border border-white/20 transition-all flex items-center space-x-2">
+            <i data-lucide="cloud-download" class="w-4 h-4"></i>
+            <span>Conectar a Google Sheets</span>
+          </button>
+          <span id="googleSheetsStatus" class="text-[10px] text-slate-200 mt-1" role="status">Conexión privada · solo lectura</span>
+        </div>
+        <button id="googleSheetsDisconnectBtn" type="button" class="hidden bg-white/10 hover:bg-white/20 text-white text-xs font-semibold px-3 py-2.5 rounded-lg border border-white/20 transition-all">
+          Desconectar
+        </button>
         <label for="fileInput" class="cursor-pointer bg-ceo-green hover:bg-emerald-600 text-white text-xs md:text-sm font-semibold px-4 py-2.5 rounded-lg shadow-md transition-all flex items-center space-x-2">
           <i data-lucide="upload" class="w-4 h-4"></i>
           <span id="uploadLabel">Cargar Excel de Diagnóstico</span>
@@ -409,6 +420,10 @@
               </div>
               <select id="companySelect" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-800 focus:ring-2 focus:ring-ceo-green focus:outline-none transition-all">
               </select>
+              <div id="companyResponseMetadata" class="hidden flex flex-wrap gap-x-5 gap-y-1 pt-2 text-xs text-slate-500">
+                <span>Fecha de respuesta: <strong id="companyResponseDate" class="font-semibold text-slate-700"></strong></span>
+                <span>Cargo de quien responde: <strong id="companyRespondentRole" class="font-semibold text-slate-700"></strong></span>
+              </div>
               </div>
               <button onclick="toggleCompanySummary()" class="bg-ceo-blue hover:bg-ceo-bluelight text-white text-xs font-semibold px-3 py-2.5 rounded-lg shadow-sm transition-all flex items-center justify-center space-x-2 whitespace-nowrap">
                 <i data-lucide="list-checks" class="w-4 h-4"></i>
@@ -1132,7 +1147,13 @@
       "Beneficios y bienestar laboral"
     ];
 
-    let processedData = { companies: new Set(), pendingCompanies: new Set(), questions: [], matrix: {}, municipalities: new Set() };
+    let processedData = { companies: new Set(), pendingCompanies: new Set(), questions: [], matrix: {}, municipalities: new Set(), companyMetadata: {} };
+    const GOOGLE_OAUTH_CLIENT_ID = '459966982379-lqaa68th0o0td0qdgmfbmska8b2la494.apps.googleusercontent.com';
+    const GOOGLE_SHEET_ID = '1lAPXA9n7kALdTBllGBBiNXIGHfR_V-UqrNH4c989cj8';
+    const GOOGLE_SHEET_GID = 676587504;
+    const GOOGLE_WORKSPACE_DOMAIN = 'ceo.org.co';
+    let googleTokenClient = null;
+    let googleAccessToken = '';
     let activeView = 'regional';
     let activeFilterMunicipio = 'ALL';
     let activeFilterTamano = 'ALL';
@@ -1171,10 +1192,13 @@
       renderSidebarModules();
       renderSustainableInventoryState();
       renderFinancialEmptyState();
+      setupGoogleSheetsConnection();
     });
 
     function setupEventListeners() {
       document.getElementById('fileInput').addEventListener('change', handleFileUpload);
+      document.getElementById('googleSheetsConnectBtn').addEventListener('click', connectGoogleSheets);
+      document.getElementById('googleSheetsDisconnectBtn').addEventListener('click', disconnectGoogleSheets);
       document.getElementById('sustainableInventoryInput').addEventListener('change', handleSustainableInventoryUpload);
       document.getElementById('sustainableVisitNotesInput').addEventListener('change', handleSustainableVisitNotesUpload);
       document.getElementById('questionSearch').addEventListener('input', filterQuestionOptions);
@@ -1200,6 +1224,172 @@
       document.getElementById('financialCloseModalBtn').addEventListener('click', () => document.getElementById('financialEditModal').classList.add('hidden'));
       document.getElementById('financialCloseSecondaryBtn').addEventListener('click', () => document.getElementById('financialEditModal').classList.add('hidden'));
       document.getElementById('tableSearch').addEventListener('input', filterTable);
+    }
+
+    function setupGoogleSheetsConnection() {
+      if (!window.google?.accounts?.oauth2) {
+        setGoogleSheetsStatus('No se pudo cargar el inicio de sesión de Google.', true);
+        document.getElementById('googleSheetsConnectBtn').disabled = true;
+        return;
+      }
+
+      googleTokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: GOOGLE_OAUTH_CLIENT_ID,
+        scope: 'openid email https://www.googleapis.com/auth/spreadsheets.readonly',
+        callback: handleGoogleTokenResponse,
+        error_callback: (error) => {
+          setGoogleSheetsStatus(error.message || 'No se pudo iniciar la autenticación de Google.', true);
+        }
+      });
+    }
+
+    function setGoogleSheetsStatus(message, isError = false) {
+      const status = document.getElementById('googleSheetsStatus');
+      status.textContent = message;
+      status.classList.toggle('text-rose-200', isError);
+      status.classList.toggle('text-slate-200', !isError);
+    }
+
+    function connectGoogleSheets() {
+      if (!googleTokenClient) {
+        setGoogleSheetsStatus('El inicio de sesión de Google no está disponible.', true);
+        return;
+      }
+      setGoogleSheetsStatus('Esperando autorización de Google…');
+      googleTokenClient.requestAccessToken({ prompt: googleAccessToken ? '' : 'consent' });
+    }
+
+    async function handleGoogleTokenResponse(response) {
+      if (response.error) {
+        setGoogleSheetsStatus(response.error_description || 'Google no autorizó el acceso a la hoja.', true);
+        return;
+      }
+
+      googleAccessToken = response.access_token;
+      document.getElementById('googleSheetsConnectBtn').disabled = true;
+      setGoogleSheetsStatus('Verificando cuenta y leyendo respuestas…');
+      try {
+        await verifyGoogleWorkspaceAccount(googleAccessToken);
+        await loadGoogleFormResponses(googleAccessToken);
+        document.getElementById('googleSheetsDisconnectBtn').classList.remove('hidden');
+        setGoogleSheetsStatus('Hoja actualizada desde Google Sheets · solo lectura');
+        showDashboard();
+        document.getElementById('uploadLabel').textContent = 'Cargar Excel manual';
+      } catch (error) {
+        googleAccessToken = '';
+        document.getElementById('googleSheetsDisconnectBtn').classList.add('hidden');
+        setGoogleSheetsStatus(error.message || 'No se pudieron cargar las respuestas de Google Sheets.', true);
+        showSustainableNotice(error.message || 'No se pudieron cargar las respuestas de Google Sheets.', 'bg-red-600');
+      } finally {
+        document.getElementById('googleSheetsConnectBtn').disabled = false;
+      }
+    }
+
+    async function googleApiGet(url, accessToken) {
+      const response = await fetch(url, {
+        headers: { Authorization: `Bearer ${accessToken}` }
+      });
+      const payload = await response.json();
+      if (!response.ok) {
+        const apiMessage = payload.error?.message;
+        throw new Error(apiMessage || `Google Sheets respondió con el estado ${response.status}.`);
+      }
+      return payload;
+    }
+
+    async function verifyGoogleWorkspaceAccount(accessToken) {
+      const profile = await googleApiGet('https://openidconnect.googleapis.com/v1/userinfo', accessToken);
+      const email = cleanText(profile.email).toLowerCase();
+      if (profile.email_verified !== true || !email.endsWith(`@${GOOGLE_WORKSPACE_DOMAIN}`)) {
+        google.accounts.oauth2.revoke(accessToken);
+        throw new Error(`Inicia sesión con una cuenta autorizada @${GOOGLE_WORKSPACE_DOMAIN}.`);
+      }
+    }
+
+    async function loadGoogleFormResponses(accessToken) {
+      const spreadsheetUrl = new URL(`https://sheets.googleapis.com/v4/spreadsheets/${GOOGLE_SHEET_ID}`);
+      spreadsheetUrl.searchParams.set('fields', 'sheets.properties(sheetId,title)');
+      const spreadsheet = await googleApiGet(spreadsheetUrl, accessToken);
+      const targetSheet = spreadsheet.sheets
+        ?.map(sheet => sheet.properties)
+        .find(properties => properties.sheetId === GOOGLE_SHEET_GID);
+      if (!targetSheet) {
+        throw new Error(`No se encontró la pestaña con ID ${GOOGLE_SHEET_GID} en el archivo de respuestas.`);
+      }
+
+      const escapedTitle = `'${targetSheet.title.replace(/'/g, "''")}'`;
+      const valuesUrl = new URL(`https://sheets.googleapis.com/v4/spreadsheets/${GOOGLE_SHEET_ID}/values:batchGet`);
+      [`${escapedTitle}!A:A`, `${escapedTitle}!D:E`, `${escapedTitle}!H:BP`]
+        .forEach(range => valuesUrl.searchParams.append('ranges', range));
+      valuesUrl.searchParams.set('valueRenderOption', 'FORMATTED_VALUE');
+      const result = await googleApiGet(valuesUrl, accessToken);
+      const [timestamps, companyDetails, answers] = result.valueRanges || [];
+      processGoogleFormResponses(
+        timestamps?.values || [],
+        companyDetails?.values || [],
+        answers?.values || []
+      );
+    }
+
+    function processGoogleFormResponses(timestampRows, companyDetailRows, answerRows) {
+      const headers = answerRows[0] || [];
+      const questions = headers.map(cleanText);
+      if (!questions.some(Boolean)) {
+        throw new Error('La pestaña de respuestas no contiene preguntas a partir de la columna H.');
+      }
+
+      const companyHeaders = companyDetailRows[0] || [];
+      const companyColumn = companyHeaders.findIndex(header => {
+        const normalized = normalizeFilterText(header);
+        return normalized.includes('empresa') || normalized.includes('razon social');
+      });
+      const roleColumn = companyHeaders.findIndex(header => normalizeFilterText(header).includes('cargo'));
+      if (companyColumn < 0) {
+        throw new Error('No se encontró la columna “Empresa” o “Razón social” en la columna D.');
+      }
+
+      const nextData = { companies: new Set(), pendingCompanies: new Set(), questions: [], matrix: {}, municipalities: new Set(), companyMetadata: {} };
+      nextData.questions = questions.filter(Boolean);
+      const rowCount = Math.max(timestampRows.length, companyDetailRows.length, answerRows.length);
+      for (let rowIndex = 1; rowIndex < rowCount; rowIndex++) {
+        const companyDetails = companyDetailRows[rowIndex] || [];
+        const company = cleanText(companyDetails[companyColumn]);
+        if (!company) continue;
+
+        const rawResponses = answerRows[rowIndex] || [];
+        const responses = questions.map((question, index) => question ? cleanText(rawResponses[index]) : '');
+        if (!responses.some(Boolean)) {
+          nextData.pendingCompanies.add(company);
+          continue;
+        }
+
+        nextData.companies.add(company);
+        nextData.matrix[company] = {};
+        questions.forEach((question, index) => {
+          if (!question) return;
+          const response = responses[index];
+          nextData.matrix[company][question] = response || 'Sin Respuesta';
+          if (normalizeFilterText(question) === 'municipio' && response && !isInvalidAnswer(response)) {
+            nextData.municipalities.add(response);
+          }
+        });
+        nextData.companyMetadata[company] = {
+          responseDate: cleanText(timestampRows[rowIndex]?.[0]),
+          respondentRole: roleColumn >= 0 ? cleanText(companyDetails[roleColumn]) : ''
+        };
+      }
+
+      nextData.questions = orderQuestions(Array.from(new Set(nextData.questions)));
+      processedData = nextData;
+      updateSelectors();
+      updateMunicipalTicker();
+    }
+
+    function disconnectGoogleSheets() {
+      if (googleAccessToken) google.accounts.oauth2.revoke(googleAccessToken);
+      googleAccessToken = '';
+      document.getElementById('googleSheetsDisconnectBtn').classList.add('hidden');
+      setGoogleSheetsStatus('Desconectado de Google Sheets.');
     }
 
     function cleanText(str) {
@@ -2823,7 +3013,7 @@
     }
 
     function processData(sheetData, companiesInRows = false) {
-      const nextData = { companies: new Set(), pendingCompanies: new Set(), questions: [], matrix: {}, municipalities: new Set() };
+      const nextData = { companies: new Set(), pendingCompanies: new Set(), questions: [], matrix: {}, municipalities: new Set(), companyMetadata: {} };
       const headerRow = sheetData[0] || [];
       if (companiesInRows) {
         if (!normalizeFilterText(headerRow[0]).includes('empresa')) {
@@ -4248,9 +4438,20 @@
     function updateCompanyView() {
       const selectedCompany = document.getElementById('companySelect').value || Array.from(processedData.companies)[0];
       if (!selectedCompany) return;
+      renderCompanyResponseMetadata(selectedCompany);
       renderCompanySustainabilityScore(selectedCompany);
       renderRadarChart(selectedCompany);
       renderCompanyBenchmarkingTable(selectedCompany);
+    }
+
+    function renderCompanyResponseMetadata(company) {
+      const metadata = processedData.companyMetadata?.[company];
+      const container = document.getElementById('companyResponseMetadata');
+      const responseDate = document.getElementById('companyResponseDate');
+      const respondentRole = document.getElementById('companyRespondentRole');
+      responseDate.textContent = metadata?.responseDate || 'No disponible';
+      respondentRole.textContent = metadata?.respondentRole || 'No disponible';
+      container.classList.toggle('hidden', !metadata);
     }
 
     function renderRadarChart(company) {
