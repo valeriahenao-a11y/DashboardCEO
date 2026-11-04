@@ -1332,26 +1332,30 @@
     }
 
     function processGoogleFormResponses(timestampRows, companyDetailRows, answerRows) {
-      const headers = answerRows[0] || [];
-      const questions = headers.map(cleanText);
-      if (!questions.some(Boolean)) {
-        throw new Error('La pestaña de respuestas no contiene preguntas a partir de la columna H.');
+      const headerRowIndex = companyDetailRows.findIndex(row =>
+        row.some(header => {
+          const normalized = normalizeFilterText(header);
+          return normalized.includes('empresa') || normalized.includes('razon social');
+        })
+      );
+      if (headerRowIndex < 0) {
+        throw new Error('No se encontró el encabezado “Razón social de la empresa” en la columna D.');
       }
 
-      const companyHeaders = companyDetailRows[0] || [];
-      const companyColumn = companyHeaders.findIndex(header => {
-        const normalized = normalizeFilterText(header);
-        return normalized.includes('empresa') || normalized.includes('razon social');
-      });
-      const roleColumn = companyHeaders.findIndex(header => normalizeFilterText(header).includes('cargo'));
-      if (companyColumn < 0) {
-        throw new Error('No se encontró la columna “Empresa” o “Razón social” en la columna D.');
+      const headers = answerRows[headerRowIndex] || [];
+      const questions = headers.map(cleanText);
+      if (!questions.some(Boolean)) {
+        throw new Error(`No se encontraron encabezados de preguntas en la fila ${headerRowIndex + 1}, desde la columna H.`);
       }
+
+      const companyHeaders = companyDetailRows[headerRowIndex] || [];
+      const companyColumn = companyHeaders.findIndex(header => normalizeFilterText(header).includes('empresa') || normalizeFilterText(header).includes('razon social'));
+      const roleColumn = companyHeaders.findIndex(header => normalizeFilterText(header).includes('cargo'));
 
       const nextData = { companies: new Set(), pendingCompanies: new Set(), questions: [], matrix: {}, municipalities: new Set(), companyMetadata: {} };
       nextData.questions = questions.filter(Boolean);
       const rowCount = Math.max(timestampRows.length, companyDetailRows.length, answerRows.length);
-      for (let rowIndex = 1; rowIndex < rowCount; rowIndex++) {
+      for (let rowIndex = headerRowIndex + 1; rowIndex < rowCount; rowIndex++) {
         const companyDetails = companyDetailRows[rowIndex] || [];
         const company = cleanText(companyDetails[companyColumn]);
         if (!company) continue;
