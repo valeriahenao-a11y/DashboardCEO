@@ -1332,6 +1332,21 @@
       );
     }
 
+    function isGoogleFormResponsesSheet(rows) {
+      return rows.some(row =>
+        normalizeFilterText(row[0]).includes('marca temporal') &&
+        (normalizeFilterText(row[3]).includes('empresa') || normalizeFilterText(row[3]).includes('razon social')) &&
+        row.slice(7).some(header => cleanText(header))
+      );
+    }
+
+    function processGoogleFormWorksheet(rows) {
+      const timestampRows = rows.map(row => [row[0] || '']);
+      const companyDetailRows = rows.map(row => [row[3] || '', row[4] || '']);
+      const answerRows = rows.map(row => row.slice(7));
+      processGoogleFormResponses(timestampRows, companyDetailRows, answerRows);
+    }
+
     function processGoogleFormResponses(timestampRows, companyDetailRows, answerRows) {
       const companyHeaderRowIndex = companyDetailRows.findIndex(row =>
         row.some(header => {
@@ -1495,26 +1510,43 @@
           const data = new Uint8Array(evt.target.result);
           const workbook = XLSX.read(data, { type: 'array' });
           const correctedSheetName = 'Respuestas corregido';
-          const selectedSheetName = workbook.SheetNames.includes(correctedSheetName)
-            ? correctedSheetName
-            : workbook.SheetNames[0];
+          const googleFormsSheetName = workbook.SheetNames.find(sheetName => {
+            const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { header: 1, defval: '', raw: false });
+            return isGoogleFormResponsesSheet(rows);
+          });
+          const selectedSheetName = googleFormsSheetName
+            || (workbook.SheetNames.includes(correctedSheetName) ? correctedSheetName : workbook.SheetNames[0]);
           if (!selectedSheetName) throw new Error('El archivo no contiene hojas de datos.');
           const selectedSheet = workbook.Sheets[selectedSheetName];
           
-          const sheetData = XLSX.utils.sheet_to_json(selectedSheet, { header: 1, defval: "" });
+          const sheetData = XLSX.utils.sheet_to_json(selectedSheet, { header: 1, defval: '', raw: false });
           if (sheetData.length === 0) throw new Error(`La hoja “${selectedSheetName}” está vacía.`);
-          processData(sheetData, selectedSheetName === correctedSheetName);
+          if (isGoogleFormResponsesSheet(sheetData)) {
+            processGoogleFormWorksheet(sheetData);
+          } else if (selectedSheetName === correctedSheetName) {
+            processData(sheetData, true);
+          } else {
+            processData(sheetData);
+          }
           showDashboard();
-          document.getElementById('uploadLabel').textContent = 'Cambiar Excel';
+          document.getElementById('uploadLabel').textContent = 'Cargar Excel manual';
+          setGoogleSheetsStatus(`Datos cargados desde ${file.name}.`);
         } catch (err) {
           console.error(err);
           const notice = document.createElement('div');
           notice.className = 'fixed bottom-4 right-4 bg-red-600 text-white px-4 py-2 rounded-lg shadow-lg text-xs font-semibold z-50';
-          notice.textContent = "Error al procesar el archivo Excel. Asegúrese de cargar un archivo de diagnóstico válido.";
+          notice.textContent = err.message || 'Error al procesar el archivo Excel. Asegúrese de cargar un archivo de diagnóstico válido.';
           document.body.appendChild(notice);
           setTimeout(() => notice.remove(), 4000);
-          document.getElementById('uploadLabel').textContent = 'Cargar Excel de Diagnóstico';
+          document.getElementById('uploadLabel').textContent = 'Cargar Excel manual';
+        } finally {
+          document.getElementById('fileInput').value = '';
         }
+      };
+      reader.onerror = () => {
+        setGoogleSheetsStatus('No se pudo leer el archivo seleccionado.', true);
+        document.getElementById('uploadLabel').textContent = 'Cargar Excel manual';
+        document.getElementById('fileInput').value = '';
       };
       reader.readAsArrayBuffer(file);
     }
