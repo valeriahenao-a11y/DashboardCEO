@@ -1320,7 +1320,7 @@
 
       const escapedTitle = `'${targetSheet.title.replace(/'/g, "''")}'`;
       const valuesUrl = new URL(`https://sheets.googleapis.com/v4/spreadsheets/${GOOGLE_SHEET_ID}/values:batchGet`);
-      [`${escapedTitle}!A2:A`, `${escapedTitle}!D2:E`, `${escapedTitle}!H2:BP`]
+      [`${escapedTitle}!A2:A`, `${escapedTitle}!D2:E`, `${escapedTitle}!H2:BU`]
         .forEach(range => valuesUrl.searchParams.append('ranges', range));
       valuesUrl.searchParams.set('valueRenderOption', 'FORMATTED_VALUE');
       const result = await googleApiGet(valuesUrl, accessToken);
