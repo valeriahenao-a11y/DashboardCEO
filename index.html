@@ -1138,8 +1138,6 @@
     let financialDriveWriteAccessToken = '';
     let financialDriveEmail = '';
     let financialDriveLoaded = false;
-    let financialDriveSheetId = null;
-    let financialDriveGridProperties = null;
     let pendingFinancialEditCompany = '';
     let activeView = 'regional';
     let activeFilterMunicipio = 'ALL';
@@ -1234,7 +1232,7 @@
 
       financialDriveTokenClient = google.accounts.oauth2.initTokenClient({
         client_id: GOOGLE_OAUTH_CLIENT_ID,
-        scope: 'https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/spreadsheets.readonly',
+        scope: 'https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/drive.readonly',
         callback: handleFinancialDriveTokenResponse,
         error_callback: (error) => {
           document.getElementById('financialWorkbookLoadBtn').disabled = false;
@@ -1243,7 +1241,7 @@
       });
       financialDriveWriteTokenClient = google.accounts.oauth2.initTokenClient({
         client_id: GOOGLE_OAUTH_CLIENT_ID,
-        scope: 'https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/spreadsheets',
+        scope: 'https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/drive',
         callback: handleFinancialDriveWriteTokenResponse,
         error_callback: (error) => {
           pendingFinancialEditCompany = '';
@@ -1794,31 +1792,37 @@
     }
 
     async function loadFinancialWorkbookFromDrive(accessToken) {
-      const metadataUrl = new URL(`https://sheets.googleapis.com/v4/spreadsheets/${FINANCIAL_DRIVE_SPREADSHEET_ID}`);
-      metadataUrl.searchParams.set('fields', 'properties(title),sheets(properties(sheetId,title,gridProperties(rowCount,columnCount)))');
-      const metadata = await googleApiGet(metadataUrl, accessToken);
-      const targetSheet = metadata.sheets
-        ?.map((sheet) => sheet.properties)
-        .find((properties) => properties.title === FINANCIAL_DRIVE_SHEET_NAME);
-      if (!targetSheet) {
-        throw new Error(`No se encontró la pestaña “${FINANCIAL_DRIVE_SHEET_NAME}” en la hoja de Drive.`);
+      const metadataUrl = new URL(`https://www.googleapis.com/drive/v3/files/${FINANCIAL_DRIVE_SPREADSHEET_ID}`);
+      metadataUrl.searchParams.set('fields', 'name,mimeType');
+      metadataUrl.searchParams.set('supportsAllDrives', 'true');
+      const metadataResponse = await fetch(metadataUrl, {
+        headers: { Authorization: `Bearer ${accessToken}` }
+      });
+      if (!metadataResponse.ok) {
+        const payload = await metadataResponse.json().catch(() => ({}));
+        throw new Error(payload.error?.message || `Google Drive respondió con el estado ${metadataResponse.status} al consultar el archivo.`);
+      }
+      const metadata = await metadataResponse.json();
+      if (metadata.mimeType !== 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') {
+        throw new Error('El archivo de Drive no es un Excel .xlsx. Verifique que el enlace corresponda al archivo adjunto.');
       }
 
-      const valuesUrl = new URL(`https://sheets.googleapis.com/v4/spreadsheets/${FINANCIAL_DRIVE_SPREADSHEET_ID}/values:batchGet`);
-      valuesUrl.searchParams.append('ranges', `'${FINANCIAL_DRIVE_SHEET_NAME.replace(/'/g, "''")}'!A:ZZ`);
-      valuesUrl.searchParams.set('valueRenderOption', 'UNFORMATTED_VALUE');
-      valuesUrl.searchParams.set('dateTimeRenderOption', 'SERIAL_NUMBER');
-      const valuesResponse = await googleApiGet(valuesUrl, accessToken);
-      const rows = valuesResponse.valueRanges?.[0]?.values || [];
-      if (!rows.length) throw new Error(`La pestaña “${FINANCIAL_DRIVE_SHEET_NAME}” no contiene datos.`);
-
-      financialDriveSheetId = targetSheet.sheetId;
-      financialDriveGridProperties = targetSheet.gridProperties || null;
-      const fileName = `${cleanText(metadata.properties?.title) || 'Datos financieros CEO'}.xlsx`;
-      const workbook = XLSX.utils.book_new();
-      const worksheet = XLSX.utils.aoa_to_sheet(rows);
-      XLSX.utils.book_append_sheet(workbook, worksheet, FINANCIAL_DRIVE_SHEET_NAME);
-      loadFinancialWorkbookSource(XLSX.write(workbook, { type: 'array', bookType: 'xlsx' }), fileName);
+      const downloadUrl = new URL(`https://www.googleapis.com/drive/v3/files/${FINANCIAL_DRIVE_SPREADSHEET_ID}`);
+      downloadUrl.searchParams.set('alt', 'media');
+      downloadUrl.searchParams.set('supportsAllDrives', 'true');
+      const fileResponse = await fetch(downloadUrl, {
+        headers: { Authorization: `Bearer ${accessToken}` }
+      });
+      if (!fileResponse.ok) {
+        const payload = await fileResponse.json().catch(() => ({}));
+        throw new Error(payload.error?.message || `Google Drive respondió con el estado ${fileResponse.status} al descargar el archivo.`);
+      }
+      const source = new Uint8Array(await fileResponse.arrayBuffer());
+      const fileName = cleanText(metadata.name) || 'Datos financieros CEO.xlsx';
+      if (!/\.xlsx$/i.test(fileName)) {
+        throw new Error('El archivo financiero debe tener formato .xlsx para conservar sus hojas y estilos.');
+      }
+      loadFinancialWorkbookSource(source, fileName);
     }
 
     function loadFinancialWorkbookSource(source, fileName) {
@@ -2475,76 +2479,26 @@
     }
 
     async function persistFinancialChangesToDrive() {
-      if (!FINANCIAL_EDITOR_EMAILS.has(financialDriveEmail) || !financialDriveWriteAccessToken || !financialDriveSheetId) {
+      if (!FINANCIAL_EDITOR_EMAILS.has(financialDriveEmail) || !financialDriveWriteAccessToken) {
         throw new Error('La sesión no tiene permiso para editar esta hoja. Vuelva a autorizar la cuenta CEO.');
       }
       if (!financialCellUpdates.size) throw new Error('No se encontraron cambios para guardar en Google Drive.');
 
-      const changes = Array.from(financialCellUpdates.entries());
-      const requiredCellIndexes = changes.map(([address]) => XLSX.utils.decode_cell(address));
-      const requiredRows = Math.max(...requiredCellIndexes.map((cell) => cell.r + 1));
-      const requiredColumns = Math.max(...requiredCellIndexes.map((cell) => cell.c + 1));
-      const currentGrid = financialDriveGridProperties || { rowCount: requiredRows, columnCount: requiredColumns };
-      const requests = [];
-      if (requiredRows > currentGrid.rowCount) {
-        requests.push({
-          appendDimension: {
-            sheetId: financialDriveSheetId,
-            dimension: 'ROWS',
-            length: requiredRows - currentGrid.rowCount
-          }
-        });
-      }
-      if (requiredColumns > currentGrid.columnCount) {
-        requests.push({
-          appendDimension: {
-            sheetId: financialDriveSheetId,
-            dimension: 'COLUMNS',
-            length: requiredColumns - currentGrid.columnCount
-          }
-        });
-      }
-      changes.forEach(([address, value]) => {
-        const cell = XLSX.utils.decode_cell(address);
-        const userEnteredValue = typeof value === 'number'
-          ? { numberValue: value }
-          : value === ''
-            ? undefined
-            : { stringValue: String(value) };
-        requests.push({
-          updateCells: {
-            range: {
-              sheetId: financialDriveSheetId,
-              startRowIndex: cell.r,
-              endRowIndex: cell.r + 1,
-              startColumnIndex: cell.c,
-              endColumnIndex: cell.c + 1
-            },
-            rows: [{ values: [userEnteredValue ? { userEnteredValue } : {}] }],
-            fields: 'userEnteredValue'
-          }
-        });
-      });
-
       const updatedWorkbook = await createFinancialWorkbookBlob();
-      const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${FINANCIAL_DRIVE_SPREADSHEET_ID}:batchUpdate`, {
-        method: 'POST',
+      const uploadUrl = new URL(`https://www.googleapis.com/upload/drive/v3/files/${FINANCIAL_DRIVE_SPREADSHEET_ID}`);
+      uploadUrl.searchParams.set('uploadType', 'media');
+      uploadUrl.searchParams.set('supportsAllDrives', 'true');
+      const response = await fetch(uploadUrl, {
+        method: 'PATCH',
         headers: {
           Authorization: `Bearer ${financialDriveWriteAccessToken}`,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         },
-        body: JSON.stringify({ requests })
+        body: updatedWorkbook
       });
       if (!response.ok) {
         const payload = await response.json().catch(() => ({}));
-        throw new Error(payload.error?.message || `Google Sheets respondió con el estado ${response.status} al guardar.`);
-      }
-      if (financialDriveGridProperties) {
-        financialDriveGridProperties = {
-          ...financialDriveGridProperties,
-          rowCount: Math.max(currentGrid.rowCount, requiredRows),
-          columnCount: Math.max(currentGrid.columnCount, requiredColumns)
-        };
+        throw new Error(payload.error?.message || `Google Drive respondió con el estado ${response.status} al guardar.`);
       }
       financialWorkbookSource = new Uint8Array(await updatedWorkbook.arrayBuffer());
       financialCellUpdates.clear();
