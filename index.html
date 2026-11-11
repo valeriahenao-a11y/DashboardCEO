@@ -14,6 +14,7 @@
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://accounts.google.com/gsi/client"></script>
   <script>
     tailwind.config = {
       theme: {
@@ -82,7 +83,7 @@
 <body class="text-slate-800 antialiased flex flex-col min-h-screen">
   
   <header class="bg-ceo-blue text-white shadow-lg sticky top-0 z-50 border-b-4 border-ceo-green">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 min-h-20 py-2 flex flex-wrap items-center justify-between gap-3">
       <div class="flex items-center space-x-4">
         <div class="bg-white p-2 rounded-lg shadow-md flex items-center justify-center">
           <img src="CEO_Logotipo.jpg" alt="Corporación Empresarial del Oriente Antioqueño" class="h-8 w-auto max-w-[180px] object-contain" onerror="this.classList.add('hidden'); this.nextElementSibling.classList.remove('hidden');">
@@ -97,11 +98,21 @@
           <p class="text-xs text-emerald-300 font-medium">Corporación Empresarial del Oriente Antioqueño</p>
         </div>
       </div>
-      <div class="flex items-center space-x-3">
-        <label for="fileInput" class="cursor-pointer bg-ceo-green hover:bg-emerald-600 text-white text-xs md:text-sm font-semibold px-4 py-2.5 rounded-lg shadow-md transition-all flex items-center space-x-2">
-          <i data-lucide="upload" class="w-4 h-4"></i>
-          <span id="uploadLabel">Cargar Excel de Diagnóstico</span>
-        </label>
+      <div class="flex w-full min-w-0 flex-col items-end gap-1 sm:w-auto">
+        <div class="flex w-full flex-wrap items-center justify-end gap-2">
+          <button id="googleSheetsConnectBtn" type="button" class="bg-white/10 hover:bg-white/20 text-white text-xs md:text-sm font-semibold px-3 py-2.5 rounded-lg border border-white/20 transition-all flex items-center space-x-2">
+            <i data-lucide="cloud-download" class="w-4 h-4"></i>
+            <span>Conectar a Google Sheets</span>
+          </button>
+          <button id="googleSheetsDisconnectBtn" type="button" class="hidden bg-white/10 hover:bg-white/20 text-white text-xs font-semibold px-3 py-2.5 rounded-lg border border-white/20 transition-all">
+            Desconectar
+          </button>
+          <label for="fileInput" class="cursor-pointer bg-ceo-green hover:bg-emerald-600 text-white text-xs md:text-sm font-semibold px-4 py-2.5 rounded-lg shadow-md transition-all flex items-center space-x-2">
+            <i data-lucide="upload" class="w-4 h-4"></i>
+            <span id="uploadLabel">Cargar Excel de Diagnóstico</span>
+          </label>
+        </div>
+        <span id="googleSheetsStatus" class="max-w-full text-right text-[10px] text-slate-200" role="status">Conexión privada · solo lectura</span>
         <input type="file" id="fileInput" accept=".xlsx, .xls, .csv" class="hidden">
       </div>
     </div>
@@ -195,7 +206,7 @@
       <!-- DASHBOARD CON DATOS -->
       <div id="dataContent" class="hidden space-y-6">
         <!-- METRICAS SUPERIORES -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div class="glass-card rounded-xl p-5 shadow-sm border-l-4 border-ceo-blue flex items-center justify-between">
             <div>
               <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Empresas Participantes</p>
@@ -214,6 +225,18 @@
               <i data-lucide="file-check-2" class="w-6 h-6"></i>
             </div>
           </div>
+          <details class="glass-card rounded-xl p-5 shadow-sm border-l-4 border-amber-500">
+            <summary class="flex items-center justify-between cursor-pointer list-none">
+              <div>
+                <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Pendientes por responder</p>
+                <h3 class="text-2xl font-extrabold text-slate-800 mt-1" id="kpiPendingCompanies">0</h3>
+              </div>
+              <div class="p-3 bg-amber-50 rounded-lg text-amber-600">
+                <i data-lucide="clipboard-list" class="w-6 h-6"></i>
+              </div>
+            </summary>
+            <ul id="pendingCompaniesList" class="mt-4 max-h-56 overflow-y-auto custom-scrollbar border-t border-slate-200 pt-3 space-y-2 text-xs text-slate-600"></ul>
+          </details>
         </div>
 
         <!-- TICKER SLIDER DE PARTICIPACIÓN MUNICIPAL -->
@@ -397,6 +420,10 @@
               </div>
               <select id="companySelect" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-800 focus:ring-2 focus:ring-ceo-green focus:outline-none transition-all">
               </select>
+              <div id="companyResponseMetadata" class="hidden flex flex-wrap gap-x-5 gap-y-1 pt-2 text-xs text-slate-500">
+                <span>Fecha de respuesta: <strong id="companyResponseDate" class="font-semibold text-slate-700"></strong></span>
+                <span>Cargo de quien responde: <strong id="companyRespondentRole" class="font-semibold text-slate-700"></strong></span>
+              </div>
               </div>
               <button onclick="toggleCompanySummary()" class="bg-ceo-blue hover:bg-ceo-bluelight text-white text-xs font-semibold px-3 py-2.5 rounded-lg shadow-sm transition-all flex items-center justify-center space-x-2 whitespace-nowrap">
                 <i data-lucide="list-checks" class="w-4 h-4"></i>
@@ -503,17 +530,16 @@
             <div class="flex flex-col xl:flex-row xl:items-end justify-between gap-4">
               <div class="space-y-1.5 flex-1">
                 <h2 class="text-xl font-bold text-slate-800">Datos financieros de la empresa CEO</h2>
-                <p class="text-xs text-slate-500">Cargue el Excel financiero unificado actualizado para consultar y actualizar la hoja de vida de cada empresa.</p>
+                <p class="text-xs text-slate-500">Consulte la hoja financiera privada de Google Drive y actualice los datos de las empresas autorizadas.</p>
                 <div class="flex flex-wrap gap-2 pt-2">
-                  <label for="financialWorkbookInput" class="cursor-pointer bg-ceo-green hover:bg-emerald-600 text-white text-xs font-semibold px-3 py-2.5 rounded-lg shadow-sm transition-all flex items-center space-x-2">
-                    <i data-lucide="upload" class="w-4 h-4"></i><span id="financialWorkbookLabel">Cargar Excel financiero</span>
-                  </label>
-                  <input id="financialWorkbookInput" type="file" accept=".xlsx,.xls" class="hidden">
+                  <button id="financialWorkbookLoadBtn" class="bg-ceo-green hover:bg-emerald-600 text-white text-xs font-semibold px-3 py-2.5 rounded-lg shadow-sm transition-all flex items-center space-x-2">
+                    <i data-lucide="cloud-download" class="w-4 h-4"></i><span id="financialWorkbookLabel">Conectar Google Drive</span>
+                  </button>
                   <button id="financialWorkbookExportBtn" class="hidden bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-3 py-2.5 rounded-lg shadow-sm transition-all flex items-center space-x-2">
                     <i data-lucide="download" class="w-4 h-4"></i><span>Descargar Excel actualizado</span>
                   </button>
                 </div>
-                <p id="financialWorkbookStatus" class="text-xs text-slate-500" role="status">Seleccione el archivo “Novedades financieras y uso de servicios CEO - actualizado.xlsx”.</p>
+                <p id="financialWorkbookStatus" class="text-xs text-slate-500" role="status">Conecte su cuenta de Google para consultar la hoja privada en Drive. No es necesario publicarla.</p>
                 <label class="text-xs font-bold text-slate-600 uppercase tracking-wider flex items-center space-x-1 pt-2">
                   <i data-lucide="wallet" class="w-3.5 h-3.5 text-ceo-blue"></i>
                   <span>Empresa afiliada</span>
@@ -525,17 +551,16 @@
                 <button id="financialCompanyViewBtn" class="bg-ceo-blue hover:bg-ceo-bluelight text-white text-xs font-semibold px-3 py-2.5 rounded-lg shadow-sm transition-all flex items-center space-x-2" disabled>
                   <i data-lucide="file-user" class="w-4 h-4"></i><span>Ver hoja de vida</span>
                 </button>
-                <button id="financialCompanyPinBtn" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-3 py-2.5 rounded-lg shadow-sm transition-all flex items-center space-x-2">
-                  <i data-lucide="shield" class="w-4 h-4"></i><span>Configurar PIN</span>
+                <button id="financialCompanyEditAccessBtn" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-3 py-2.5 rounded-lg shadow-sm transition-all flex items-center space-x-2" disabled>
+                  <i data-lucide="pencil" class="w-4 h-4"></i><span>Editar datos</span>
                 </button>
               </div>
             </div>
           </div>
 
           <div class="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 text-xs text-slate-700 space-y-1">
-            <p><strong>Cómo usarlo:</strong> 1) Cargue el Excel financiero unificado. 2) Busque y seleccione la empresa. 3) Pulse “Ver hoja de vida”. 4) Para cambiar datos, pulse “Editar empresa”, valide el PIN y guarde.</p>
-            <p>Al guardar se descarga un Excel actualizado que conserva el formato de moneda, porcentaje y fecha corta; use esa copia la próxima vez. El archivo original no se modifica.</p>
-            <p class="text-slate-500">El PIN se almacena solo en este navegador. Como el Dashboard es estático y no tiene servidor de autenticación, sirve como barrera de uso, no como control de acceso corporativo ni sincroniza cambios entre colaboradores.</p>
+            <p><strong>Cómo usarlo:</strong> conecte Google Drive, busque la empresa y consulte su hoja de vida. Los cambios de las cuentas autorizadas se guardan directamente en la hoja; la descarga genera una copia .xlsx.</p>
+            <p>La hoja permanece privada. Asegúrese de que los permisos de Google Sheets otorguen edición solo a las personas autorizadas.</p>
           </div>
 
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
@@ -791,36 +816,9 @@
         </div>
         <div class="flex justify-end gap-3 border-t border-slate-100 pt-5 mt-5">
           <button id="financialProfileCloseSecondaryBtn" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold px-4 py-2.5 rounded-xl">Cerrar</button>
-          <button id="financialCompanyEditBtn" class="bg-sky-700 hover:bg-sky-800 text-white text-sm font-semibold px-5 py-2.5 rounded-xl flex items-center gap-2">
+          <button id="financialCompanyEditBtn" class="hidden bg-sky-700 hover:bg-sky-800 text-white text-sm font-semibold px-5 py-2.5 rounded-xl flex items-center gap-2">
             <i data-lucide="pencil" class="w-4 h-4"></i><span>Editar empresa</span>
           </button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div id="financialPinModal" class="fixed inset-0 bg-slate-900/60 hidden z-[60] p-4 flex items-center justify-center" role="dialog" aria-modal="true" aria-labelledby="financialPinTitle">
-    <div class="w-full max-w-md bg-white rounded-2xl shadow-2xl ring-1 ring-slate-200 p-6">
-      <div class="flex items-start justify-between gap-4">
-        <div>
-          <h3 id="financialPinTitle" class="text-lg font-bold text-slate-800">Validar PIN</h3>
-          <p id="financialPinDescription" class="text-sm text-slate-500 mt-1">Ingrese el PIN de 4 dígitos para continuar.</p>
-        </div>
-        <button id="financialPinCloseBtn" class="p-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500" aria-label="Cerrar validación">
-          <i data-lucide="x" class="w-4 h-4"></i>
-        </button>
-      </div>
-      <div class="space-y-3 mt-5">
-        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500" for="financialPinInput">PIN de 4 dígitos</label>
-        <input id="financialPinInput" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="off" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-4 py-3 text-lg tracking-[0.4em] text-slate-800 focus:ring-2 focus:ring-ceo-blue focus:outline-none">
-        <div id="financialPinConfirmWrapper" class="hidden">
-          <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1" for="financialPinConfirmInput">Confirmar PIN</label>
-          <input id="financialPinConfirmInput" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="off" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-4 py-3 text-lg tracking-[0.4em] text-slate-800 focus:ring-2 focus:ring-ceo-blue focus:outline-none">
-        </div>
-        <p id="financialPinError" class="hidden text-sm font-medium text-red-600" role="alert"></p>
-        <div class="flex justify-end gap-2 pt-2">
-          <button id="financialPinCancelBtn" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold px-4 py-2.5 rounded-lg">Cancelar</button>
-          <button id="financialPinSubmitBtn" class="bg-ceo-blue hover:bg-ceo-bluelight text-white text-sm font-semibold px-4 py-2.5 rounded-lg">Validar PIN</button>
         </div>
       </div>
     </div>
@@ -1120,7 +1118,27 @@
       "Beneficios y bienestar laboral"
     ];
 
-    let processedData = { companies: new Set(), questions: [], matrix: {}, municipalities: new Set() };
+    let processedData = { companies: new Set(), pendingCompanies: new Set(), questions: [], matrix: {}, municipalities: new Set(), companyMetadata: {} };
+    const GOOGLE_OAUTH_CLIENT_ID = '459966982379-lqaa68th0o0td0qdgmfbmska8b2la494.apps.googleusercontent.com';
+    const GOOGLE_SHEET_ID = '1lAPXA9n7kALdTBllGBBiNXIGHfR_V-UqrNH4c989cj8';
+    const GOOGLE_SHEET_GID = 676587504;
+    const GOOGLE_WORKSPACE_DOMAIN = 'ceo.org.co';
+    const FINANCIAL_DRIVE_SPREADSHEET_ID = '1bsrE6MW_GfQL5pn_CoDTdRO0Gk2phT1W';
+    const FINANCIAL_DRIVE_SHEET_NAME = 'Matriz Unificada CEO';
+    const FINANCIAL_EDITOR_EMAILS = new Set([
+      'alejandra.duque@ceo.org.co',
+      'valeria.henao@ceo.org.co',
+      'oriente@ceo.org.co'
+    ]);
+    let googleTokenClient = null;
+    let googleAccessToken = '';
+    let financialDriveTokenClient = null;
+    let financialDriveWriteTokenClient = null;
+    let financialDriveAccessToken = '';
+    let financialDriveWriteAccessToken = '';
+    let financialDriveEmail = '';
+    let financialDriveLoaded = false;
+    let pendingFinancialEditCompany = '';
     let activeView = 'regional';
     let activeFilterMunicipio = 'ALL';
     let activeFilterTamano = 'ALL';
@@ -1159,28 +1177,26 @@
       renderSidebarModules();
       renderSustainableInventoryState();
       renderFinancialEmptyState();
+      setupGoogleSheetsConnection();
+      setupFinancialDriveConnection();
     });
 
     function setupEventListeners() {
       document.getElementById('fileInput').addEventListener('change', handleFileUpload);
+      document.getElementById('googleSheetsConnectBtn').addEventListener('click', connectGoogleSheets);
+      document.getElementById('googleSheetsDisconnectBtn').addEventListener('click', disconnectGoogleSheets);
       document.getElementById('sustainableInventoryInput').addEventListener('change', handleSustainableInventoryUpload);
       document.getElementById('sustainableVisitNotesInput').addEventListener('change', handleSustainableVisitNotesUpload);
       document.getElementById('questionSearch').addEventListener('input', filterQuestionOptions);
       document.getElementById('questionSelect').addEventListener('change', updateRegionalView);
       document.getElementById('companySearch').addEventListener('input', filterCompanyOptions);
       document.getElementById('companySelect').addEventListener('change', updateCompanyView);
-      document.getElementById('financialWorkbookInput').addEventListener('change', handleFinancialWorkbookUpload);
-      document.getElementById('financialWorkbookInput').addEventListener('click', (event) => {
-        event.target.value = '';
-      });
+      document.getElementById('financialWorkbookLoadBtn').addEventListener('click', connectFinancialDrive);
       document.getElementById('financialCompanySearch').addEventListener('input', (event) => renderFinancialCompanyOptions(event.target.value));
       document.getElementById('financialCompanySelect').addEventListener('change', updateFinancialCompanyView);
       document.getElementById('financialCompanyViewBtn').addEventListener('click', openFinancialProfileModal);
       document.getElementById('financialCompanyEditBtn').addEventListener('click', openFinancialEditModal);
-      document.getElementById('financialCompanyPinBtn').addEventListener('click', configureFinancialPIN);
-      document.getElementById('financialPinSubmitBtn').addEventListener('click', handleFinancialPinSubmit);
-      document.getElementById('financialPinCancelBtn').addEventListener('click', closeFinancialPinModal);
-      document.getElementById('financialPinCloseBtn').addEventListener('click', closeFinancialPinModal);
+      document.getElementById('financialCompanyEditAccessBtn').addEventListener('click', openFinancialEditModal);
       document.getElementById('financialSaveBtn').addEventListener('click', saveFinancialEditForm);
       document.getElementById('financialWorkbookExportBtn').addEventListener('click', exportFinancialWorkbook);
       document.getElementById('financialProfileCloseBtn').addEventListener('click', closeFinancialProfileModal);
@@ -1188,6 +1204,293 @@
       document.getElementById('financialCloseModalBtn').addEventListener('click', () => document.getElementById('financialEditModal').classList.add('hidden'));
       document.getElementById('financialCloseSecondaryBtn').addEventListener('click', () => document.getElementById('financialEditModal').classList.add('hidden'));
       document.getElementById('tableSearch').addEventListener('input', filterTable);
+    }
+
+    function setupGoogleSheetsConnection() {
+      if (!window.google?.accounts?.oauth2) {
+        setGoogleSheetsStatus('No se pudo cargar el inicio de sesión de Google.', true);
+        document.getElementById('googleSheetsConnectBtn').disabled = true;
+        return;
+      }
+
+      googleTokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: GOOGLE_OAUTH_CLIENT_ID,
+        scope: 'https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/spreadsheets.readonly',
+        callback: handleGoogleTokenResponse,
+        error_callback: (error) => {
+          setGoogleSheetsStatus(error.message || 'No se pudo iniciar la autenticación de Google.', true);
+        }
+      });
+    }
+
+    function setupFinancialDriveConnection() {
+      if (!window.google?.accounts?.oauth2) {
+        setFinancialDriveStatus('No se pudo cargar el inicio de sesión de Google.', true);
+        document.getElementById('financialWorkbookLoadBtn').disabled = true;
+        return;
+      }
+
+      financialDriveTokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: GOOGLE_OAUTH_CLIENT_ID,
+        scope: 'https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/drive.readonly',
+        callback: handleFinancialDriveTokenResponse,
+        error_callback: (error) => {
+          document.getElementById('financialWorkbookLoadBtn').disabled = false;
+          setFinancialDriveStatus(error.message || 'No se pudo iniciar sesión en Google Drive.', true);
+        }
+      });
+      financialDriveWriteTokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: GOOGLE_OAUTH_CLIENT_ID,
+        scope: 'https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/drive',
+        callback: handleFinancialDriveWriteTokenResponse,
+        error_callback: (error) => {
+          pendingFinancialEditCompany = '';
+          showNotice(error.message || 'Google no autorizó el acceso de escritura a la hoja.', 'bg-red-600');
+        }
+      });
+    }
+
+    function setFinancialDriveStatus(message, isError = false) {
+      const status = document.getElementById('financialWorkbookStatus');
+      status.textContent = message;
+      status.classList.toggle('text-rose-600', isError);
+      status.classList.toggle('text-slate-500', !isError);
+    }
+
+    function connectFinancialDrive() {
+      if (!financialDriveTokenClient) {
+        setFinancialDriveStatus('El inicio de sesión de Google Drive no está disponible.', true);
+        return;
+      }
+      document.getElementById('financialWorkbookLoadBtn').disabled = true;
+      financialDriveLoaded = false;
+      financialDriveAccessToken = '';
+      financialDriveWriteAccessToken = '';
+      financialDriveEmail = '';
+      updateFinancialEditorControls();
+      setFinancialDriveStatus('Esperando autorización para leer la hoja privada en Google Drive…');
+      financialDriveTokenClient.requestAccessToken({ prompt: 'select_account' });
+    }
+
+    async function handleFinancialDriveTokenResponse(response) {
+      if (response.error) {
+        document.getElementById('financialWorkbookLoadBtn').disabled = false;
+        setFinancialDriveStatus(response.error_description || 'Google no autorizó el acceso a la hoja.', true);
+        return;
+      }
+
+      financialDriveAccessToken = response.access_token;
+      setFinancialDriveStatus('Verificando la cuenta y leyendo la hoja de Google Drive…');
+      try {
+        financialDriveEmail = await verifyGoogleWorkspaceAccount(financialDriveAccessToken);
+        await loadFinancialWorkbookFromDrive(financialDriveAccessToken);
+        document.getElementById('financialWorkbookLabel').textContent = 'Actualizar desde Google Drive';
+        setFinancialDriveStatus(`${financialFileName}: ${Object.keys(financialCompanyData).length} empresas cargadas desde “${financialWorksheetName}” (${financialDriveEmail}).`);
+        updateFinancialEditorControls();
+      } catch (error) {
+        console.error(error);
+        financialDriveLoaded = false;
+        updateFinancialEditorControls();
+        setFinancialDriveStatus(error.message || 'No se pudo cargar la hoja financiera desde Google Drive.', true);
+        showNotice(error.message || 'No se pudo cargar la hoja financiera desde Google Drive.', 'bg-red-600');
+      } finally {
+        document.getElementById('financialWorkbookLoadBtn').disabled = false;
+      }
+    }
+
+    async function handleFinancialDriveWriteTokenResponse(response) {
+      const company = pendingFinancialEditCompany;
+      pendingFinancialEditCompany = '';
+      if (response.error) {
+        showNotice(response.error_description || 'Google no autorizó el acceso de escritura a la hoja.', 'bg-red-600');
+        return;
+      }
+      try {
+        const email = await verifyGoogleWorkspaceAccount(response.access_token);
+        if (email !== financialDriveEmail || !FINANCIAL_EDITOR_EMAILS.has(email)) {
+          google.accounts.oauth2.revoke(response.access_token);
+          throw new Error('Autorice la escritura con la misma cuenta CEO autorizada que conectó a Google Drive.');
+        }
+        financialDriveWriteAccessToken = response.access_token;
+        if (company) prepareFinancialEditForm(company);
+        updateFinancialEditorControls();
+      } catch (error) {
+        console.error(error);
+        showNotice(error.message || 'No se pudo autorizar la edición de la hoja.', 'bg-red-600');
+      }
+    }
+
+    function setGoogleSheetsStatus(message, isError = false) {
+      const status = document.getElementById('googleSheetsStatus');
+      status.textContent = message;
+      status.classList.toggle('text-rose-200', isError);
+      status.classList.toggle('text-slate-200', !isError);
+    }
+
+    function connectGoogleSheets() {
+      if (!googleTokenClient) {
+        setGoogleSheetsStatus('El inicio de sesión de Google no está disponible.', true);
+        return;
+      }
+      setGoogleSheetsStatus('Esperando autorización de Google…');
+      googleTokenClient.requestAccessToken({ prompt: googleAccessToken ? '' : 'consent' });
+    }
+
+    async function handleGoogleTokenResponse(response) {
+      if (response.error) {
+        setGoogleSheetsStatus(response.error_description || 'Google no autorizó el acceso a la hoja.', true);
+        return;
+      }
+
+      googleAccessToken = response.access_token;
+      document.getElementById('googleSheetsConnectBtn').disabled = true;
+      setGoogleSheetsStatus('Verificando cuenta y leyendo respuestas…');
+      try {
+        await verifyGoogleWorkspaceAccount(googleAccessToken);
+        await loadGoogleFormResponses(googleAccessToken);
+        document.getElementById('googleSheetsDisconnectBtn').classList.remove('hidden');
+        document.querySelector('#googleSheetsConnectBtn span').textContent = 'Actualizar desde Google Sheets';
+        setGoogleSheetsStatus('Hoja actualizada desde Google Sheets · solo lectura');
+        showDashboard();
+        document.getElementById('uploadLabel').textContent = 'Cargar Excel manual';
+      } catch (error) {
+        googleAccessToken = '';
+        document.getElementById('googleSheetsDisconnectBtn').classList.add('hidden');
+        setGoogleSheetsStatus(error.message || 'No se pudieron cargar las respuestas de Google Sheets.', true);
+        showSustainableNotice(error.message || 'No se pudieron cargar las respuestas de Google Sheets.', 'bg-red-600');
+      } finally {
+        document.getElementById('googleSheetsConnectBtn').disabled = false;
+      }
+    }
+
+    async function googleApiGet(url, accessToken) {
+      const response = await fetch(url, {
+        headers: { Authorization: `Bearer ${accessToken}` }
+      });
+      const payload = await response.json();
+      if (!response.ok) {
+        const apiMessage = payload.error?.message;
+        throw new Error(apiMessage || `Google Sheets respondió con el estado ${response.status}.`);
+      }
+      return payload;
+    }
+
+    async function verifyGoogleWorkspaceAccount(accessToken) {
+      const profile = await googleApiGet('https://openidconnect.googleapis.com/v1/userinfo', accessToken);
+      const email = cleanText(profile.email).toLowerCase();
+      if (profile.email_verified !== true || !email.endsWith(`@${GOOGLE_WORKSPACE_DOMAIN}`)) {
+        google.accounts.oauth2.revoke(accessToken);
+        throw new Error(`Inicia sesión con una cuenta autorizada @${GOOGLE_WORKSPACE_DOMAIN}.`);
+      }
+      return email;
+    }
+
+    async function loadGoogleFormResponses(accessToken) {
+      const spreadsheetUrl = new URL(`https://sheets.googleapis.com/v4/spreadsheets/${GOOGLE_SHEET_ID}`);
+      spreadsheetUrl.searchParams.set('fields', 'sheets.properties(sheetId,title)');
+      const spreadsheet = await googleApiGet(spreadsheetUrl, accessToken);
+      const targetSheet = spreadsheet.sheets
+        ?.map(sheet => sheet.properties)
+        .find(properties => properties.sheetId === GOOGLE_SHEET_GID);
+      if (!targetSheet) {
+        throw new Error(`No se encontró la pestaña con ID ${GOOGLE_SHEET_GID} en el archivo de respuestas.`);
+      }
+
+      const escapedTitle = `'${targetSheet.title.replace(/'/g, "''")}'`;
+      const valuesUrl = new URL(`https://sheets.googleapis.com/v4/spreadsheets/${GOOGLE_SHEET_ID}/values:batchGet`);
+      [`${escapedTitle}!A2:A`, `${escapedTitle}!D2:E`, `${escapedTitle}!H2:BU`]
+        .forEach(range => valuesUrl.searchParams.append('ranges', range));
+      valuesUrl.searchParams.set('valueRenderOption', 'FORMATTED_VALUE');
+      const result = await googleApiGet(valuesUrl, accessToken);
+      const [timestamps, companyDetails, answers] = result.valueRanges || [];
+      processGoogleFormResponses(
+        timestamps?.values || [],
+        companyDetails?.values || [],
+        answers?.values || []
+      );
+    }
+
+    function isGoogleFormResponsesSheet(rows) {
+      return rows.some(row =>
+        normalizeFilterText(row[0]).includes('marca temporal') &&
+        (normalizeFilterText(row[3]).includes('empresa') || normalizeFilterText(row[3]).includes('razon social')) &&
+        row.slice(7).some(header => cleanText(header))
+      );
+    }
+
+    function processGoogleFormWorksheet(rows) {
+      const timestampRows = rows.map(row => [row[0] || '']);
+      const companyDetailRows = rows.map(row => [row[3] || '', row[4] || '']);
+      const answerRows = rows.map(row => row.slice(7));
+      processGoogleFormResponses(timestampRows, companyDetailRows, answerRows);
+    }
+
+    function processGoogleFormResponses(timestampRows, companyDetailRows, answerRows) {
+      const companyHeaderRowIndex = companyDetailRows.findIndex(row =>
+        row.some(header => {
+          const normalized = normalizeFilterText(header);
+          return normalized.includes('empresa') || normalized.includes('razon social');
+        })
+      );
+      if (companyHeaderRowIndex < 0) {
+        throw new Error('No se encontró el encabezado “Razón social de la empresa” en la columna D.');
+      }
+
+      const answerHeaderRowIndex = answerRows.findIndex(row => row.some(header => cleanText(header)));
+      const headers = answerRows[answerHeaderRowIndex] || [];
+      const questions = headers.map(cleanText);
+      if (!questions.some(Boolean)) {
+        throw new Error('No se encontraron encabezados de preguntas desde la columna H.');
+      }
+
+      const companyHeaders = companyDetailRows[companyHeaderRowIndex] || [];
+      const companyColumn = companyHeaders.findIndex(header => normalizeFilterText(header).includes('empresa') || normalizeFilterText(header).includes('razon social'));
+      const roleColumn = companyHeaders.findIndex(header => normalizeFilterText(header).includes('cargo'));
+      const firstResponseRowIndex = Math.max(companyHeaderRowIndex, answerHeaderRowIndex) + 1;
+
+      const nextData = { companies: new Set(), pendingCompanies: new Set(), questions: [], matrix: {}, municipalities: new Set(), companyMetadata: {} };
+      nextData.questions = questions.filter(Boolean);
+      const rowCount = Math.max(timestampRows.length, companyDetailRows.length, answerRows.length);
+      for (let rowIndex = firstResponseRowIndex; rowIndex < rowCount; rowIndex++) {
+        const companyDetails = companyDetailRows[rowIndex] || [];
+        const company = cleanText(companyDetails[companyColumn]);
+        if (!company) continue;
+
+        const rawResponses = answerRows[rowIndex] || [];
+        const responses = questions.map((question, index) => question ? cleanText(rawResponses[index]) : '');
+        if (!responses.some(Boolean)) {
+          nextData.pendingCompanies.add(company);
+          continue;
+        }
+
+        nextData.companies.add(company);
+        nextData.matrix[company] = {};
+        questions.forEach((question, index) => {
+          if (!question) return;
+          const response = responses[index];
+          nextData.matrix[company][question] = response || 'Sin Respuesta';
+          if (normalizeFilterText(question) === 'municipio' && response && !isInvalidAnswer(response)) {
+            nextData.municipalities.add(response);
+          }
+        });
+        nextData.companyMetadata[company] = {
+          responseDate: cleanText(timestampRows[rowIndex]?.[0]),
+          respondentRole: roleColumn >= 0 ? cleanText(companyDetails[roleColumn]) : ''
+        };
+      }
+
+      nextData.questions = orderQuestions(Array.from(new Set(nextData.questions)));
+      processedData = nextData;
+      updateSelectors();
+      updateMunicipalTicker();
+    }
+
+    function disconnectGoogleSheets() {
+      if (googleAccessToken) google.accounts.oauth2.revoke(googleAccessToken);
+      googleAccessToken = '';
+      document.getElementById('googleSheetsDisconnectBtn').classList.add('hidden');
+      document.querySelector('#googleSheetsConnectBtn span').textContent = 'Conectar a Google Sheets';
+      setGoogleSheetsStatus('Desconectado de Google Sheets.');
     }
 
     function cleanText(str) {
@@ -1284,33 +1587,53 @@
         try {
           const data = new Uint8Array(evt.target.result);
           const workbook = XLSX.read(data, { type: 'array' });
-          const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+          const correctedSheetName = 'Respuestas corregido';
+          const googleFormsSheetName = workbook.SheetNames.find(sheetName => {
+            const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { header: 1, defval: '', raw: false });
+            return isGoogleFormResponsesSheet(rows);
+          });
+          const selectedSheetName = googleFormsSheetName
+            || (workbook.SheetNames.includes(correctedSheetName) ? correctedSheetName : workbook.SheetNames[0]);
+          if (!selectedSheetName) throw new Error('El archivo no contiene hojas de datos.');
+          const selectedSheet = workbook.Sheets[selectedSheetName];
           
-          const sheetData = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: "" });
-          if (sheetData.length > 0) {
+          const sheetData = XLSX.utils.sheet_to_json(selectedSheet, { header: 1, defval: '', raw: false });
+          if (sheetData.length === 0) throw new Error(`La hoja “${selectedSheetName}” está vacía.`);
+          if (isGoogleFormResponsesSheet(sheetData)) {
+            processGoogleFormWorksheet(sheetData);
+          } else if (selectedSheetName === correctedSheetName) {
+            processData(sheetData, true);
+          } else {
             processData(sheetData);
-            showDashboard();
-            document.getElementById('uploadLabel').textContent = 'Cambiar Excel';
           }
+          showDashboard();
+          document.getElementById('uploadLabel').textContent = 'Cargar Excel manual';
+          setGoogleSheetsStatus(`Datos cargados desde ${file.name}.`);
         } catch (err) {
           console.error(err);
           const notice = document.createElement('div');
           notice.className = 'fixed bottom-4 right-4 bg-red-600 text-white px-4 py-2 rounded-lg shadow-lg text-xs font-semibold z-50';
-          notice.textContent = "Error al procesar el archivo Excel. Asegúrese de cargar un archivo de diagnóstico válido.";
+          notice.textContent = err.message || 'Error al procesar el archivo Excel. Asegúrese de cargar un archivo de diagnóstico válido.';
           document.body.appendChild(notice);
           setTimeout(() => notice.remove(), 4000);
-          document.getElementById('uploadLabel').textContent = 'Cargar Excel de Diagnóstico';
+          document.getElementById('uploadLabel').textContent = 'Cargar Excel manual';
+        } finally {
+          document.getElementById('fileInput').value = '';
         }
+      };
+      reader.onerror = () => {
+        setGoogleSheetsStatus('No se pudo leer el archivo seleccionado.', true);
+        document.getElementById('uploadLabel').textContent = 'Cargar Excel manual';
+        document.getElementById('fileInput').value = '';
       };
       reader.readAsArrayBuffer(file);
     }
 
-    const FINANCIAL_PIN_KEY = 'ceo-financial-company-pin-v1';
     const FINANCIAL_PAYMENT_OPTIONS = [
-      { key: 'cuota', label: 'Cuota de sostenimiento', header: 'CEO 2026', amountId: 'financialFormCuota', periodId: 'financialFormCuotaPeriod' },
-      { key: 'sostenibilidad', label: 'Programa de sostenibilidad', header: 'SOSTENIBILIDAD 2026', amountId: 'financialFormSostenibilidad', periodId: 'financialFormSostenibilidadPeriod' },
-      { key: 'ambiental', label: 'Programa ambiental', header: 'Programa ambiental 2026', amountId: 'financialFormAmbiental', periodId: 'financialFormAmbientalPeriod' },
-      { key: 'riesgo', label: 'Programa de seguridad y gestión del riesgo', header: 'SEG 2026', amountId: 'financialFormRiesgo', periodId: 'financialFormRiesgoPeriod' },
+      { key: 'cuota', label: 'Cuota de sostenimiento', header: 'Cuota de afiliación', aliases: ['CEO 2026', 'Cuota de sostenimiento'], amountId: 'financialFormCuota', periodId: 'financialFormCuotaPeriod' },
+      { key: 'sostenibilidad', label: 'Programa de sostenibilidad', header: 'Pago Programa de Sostenibilidad', aliases: ['SOSTENIBILIDAD 2026'], amountId: 'financialFormSostenibilidad', periodId: 'financialFormSostenibilidadPeriod' },
+      { key: 'ambiental', label: 'Programa ambiental', header: 'Programa ambiental 2026', aliases: ['Pago Programa Ambiental'], amountId: 'financialFormAmbiental', periodId: 'financialFormAmbientalPeriod' },
+      { key: 'riesgo', label: 'Programa de seguridad y gestión del riesgo', header: 'Pago Programa GRS', aliases: ['SEG 2026'], amountId: 'financialFormRiesgo', periodId: 'financialFormRiesgoPeriod' },
       { key: 'devbida', label: 'Opción Devbida', header: 'Opcion Devbida 2026' },
       { key: 'botzone', label: 'Clubes de Robótica Botzone', header: 'Clubes de Robótica Botzone 2026' },
       { key: 'aromas', label: 'Escuela de Aromas CEO', header: 'Escuela de Aromas CEO 2026' },
@@ -1365,15 +1688,6 @@
     let financialHeaderColumns = [];
     let financialFileName = '';
     let financialCellUpdates = new Map();
-
-    function ensureFinancialPin() {
-      return getStoredFinancialPin();
-    }
-
-    function getStoredFinancialPin() {
-      const savedPin = localStorage.getItem(FINANCIAL_PIN_KEY);
-      return savedPin && /^[a-f0-9]{32}:[a-f0-9]{64}$/i.test(savedPin) ? savedPin : null;
-    }
 
     function formatMoneyValue(value) {
       if (value === null || value === undefined || value === '') return 'Sin registro';
@@ -1460,84 +1774,95 @@
       return -1;
     }
 
-    function renderFinancialEmptyState(message = 'Seleccione el archivo “Novedades financieras y uso de servicios CEO - actualizado.xlsx”.') {
-      document.getElementById('financialWorkbookStatus').textContent = message;
+    function renderFinancialEmptyState(message = 'Conecte su cuenta de Google para consultar la hoja privada en Drive.') {
+      setFinancialDriveStatus(message);
       document.getElementById('financialCompanySearch').disabled = true;
       document.getElementById('financialCompanySelect').disabled = true;
       document.getElementById('financialCompanyViewBtn').disabled = true;
+      document.getElementById('financialCompanyEditAccessBtn').disabled = true;
       document.getElementById('financialWorkbookExportBtn').classList.add('hidden');
       document.getElementById('financialCompanyPreview').classList.add('hidden');
-      document.getElementById('financialCompanySelect').innerHTML = '<option value="">Cargue primero el Excel financiero</option>';
+      document.getElementById('financialCompanySelect').innerHTML = '<option value="">Conecte Google Drive primero</option>';
       document.getElementById('financialSmmlvPct').textContent = '—';
       document.getElementById('financialCuotaSostenimiento').textContent = '—';
       document.getElementById('financialSostenibilidad').textContent = '—';
       document.getElementById('financialSeguridad').textContent = '—';
       document.getElementById('financialProgramCount').textContent = '—';
+      updateFinancialEditorControls();
     }
 
-    function handleFinancialWorkbookUpload(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-      document.getElementById('financialWorkbookLabel').textContent = 'Leyendo Excel...';
-      const reader = new FileReader();
-      reader.onload = (loadEvent) => {
-        try {
-          financialWorkbookSource = new Uint8Array(loadEvent.target.result).slice();
-          financialWorkbook = XLSX.read(financialWorkbookSource, { type: 'array', cellDates: false });
-          financialCellUpdates = new Map();
-          financialFileName = file.name;
-          const sheetMatch = financialWorkbook.SheetNames.map((name) => ({
-            name,
-            sheet: financialWorkbook.Sheets[name],
-            rows: XLSX.utils.sheet_to_json(financialWorkbook.Sheets[name], { header: 1, defval: '' })
-          })).find(({ rows }) => rows.slice(0, 10).some((row) =>
-            row.some((cell) => ['empresa', 'razon social', 'razon social empresa'].includes(normalizeFinancialHeader(cell)))
-          ));
-          if (!sheetMatch) throw new Error('No se encontró una hoja con la columna Empresa o Razón social.');
+    async function loadFinancialWorkbookFromDrive(accessToken) {
+      const metadataUrl = new URL(`https://www.googleapis.com/drive/v3/files/${FINANCIAL_DRIVE_SPREADSHEET_ID}`);
+      metadataUrl.searchParams.set('fields', 'name,mimeType');
+      metadataUrl.searchParams.set('supportsAllDrives', 'true');
+      const metadataResponse = await fetch(metadataUrl, {
+        headers: { Authorization: `Bearer ${accessToken}` }
+      });
+      if (!metadataResponse.ok) {
+        const payload = await metadataResponse.json().catch(() => ({}));
+        throw new Error(payload.error?.message || `Google Drive respondió con el estado ${metadataResponse.status} al consultar el archivo.`);
+      }
+      const metadata = await metadataResponse.json();
+      if (metadata.mimeType !== 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') {
+        throw new Error('El archivo de Drive no es un Excel .xlsx. Verifique que el enlace corresponda al archivo adjunto.');
+      }
 
-          financialWorksheet = sheetMatch.sheet;
-          financialWorksheetName = sheetMatch.name;
-          const headerRowIndex = sheetMatch.rows.findIndex((row) =>
-            row.some((cell) => ['empresa', 'razon social', 'razon social empresa'].includes(normalizeFinancialHeader(cell)))
-          );
-          financialHeaderRowIndex = headerRowIndex;
-          financialHeaderColumns = sheetMatch.rows[headerRowIndex].map((cell) => cleanText(cell));
-          financialCompanyData = parseFinancialCompanyRows(sheetMatch.rows, headerRowIndex, financialHeaderColumns);
-          const companies = Object.keys(financialCompanyData);
-          if (!companies.length) throw new Error('No se encontraron empresas en la hoja seleccionada.');
+      const downloadUrl = new URL(`https://www.googleapis.com/drive/v3/files/${FINANCIAL_DRIVE_SPREADSHEET_ID}`);
+      downloadUrl.searchParams.set('alt', 'media');
+      downloadUrl.searchParams.set('supportsAllDrives', 'true');
+      const fileResponse = await fetch(downloadUrl, {
+        headers: { Authorization: `Bearer ${accessToken}` }
+      });
+      if (!fileResponse.ok) {
+        const payload = await fileResponse.json().catch(() => ({}));
+        throw new Error(payload.error?.message || `Google Drive respondió con el estado ${fileResponse.status} al descargar el archivo.`);
+      }
+      const source = new Uint8Array(await fileResponse.arrayBuffer());
+      const fileName = cleanText(metadata.name) || 'Datos financieros CEO.xlsx';
+      if (!/\.xlsx$/i.test(fileName)) {
+        throw new Error('El archivo financiero debe tener formato .xlsx para conservar sus hojas y estilos.');
+      }
+      loadFinancialWorkbookSource(source, fileName);
+    }
 
-          document.getElementById('financialWorkbookLabel').textContent = 'Cambiar Excel';
-          document.getElementById('financialWorkbookStatus').textContent = `${file.name}: ${companies.length} empresas cargadas desde la hoja “${financialWorksheetName}”.`;
-          document.getElementById('financialCompanySearch').disabled = false;
-          document.getElementById('financialCompanySelect').disabled = false;
-          document.getElementById('financialCompanyViewBtn').disabled = false;
-          document.getElementById('financialWorkbookExportBtn').classList.remove('hidden');
-          document.getElementById('financialCompanyPreview').classList.remove('hidden');
-          renderFinancialCompanyOptions();
-          showNotice(`Se cargaron ${companies.length} empresas correctamente.`, 'bg-emerald-600');
-        } catch (error) {
-          console.error(error);
-          financialWorkbook = null;
-          financialWorkbookSource = null;
-          financialWorksheet = null;
-          financialCellUpdates = new Map();
-          financialCompanyData = {};
-          document.getElementById('financialWorkbookLabel').textContent = 'Cargar Excel financiero';
-          renderFinancialEmptyState(error.message || 'No fue posible leer el Excel seleccionado.');
-          showNotice(error.message || 'No fue posible leer el archivo Excel.', 'bg-red-600');
-        }
-      };
-      reader.onerror = () => {
-        financialWorkbook = null;
-        financialWorkbookSource = null;
-        financialWorksheet = null;
-        financialCellUpdates = new Map();
-        financialCompanyData = {};
-        document.getElementById('financialWorkbookLabel').textContent = 'Cargar Excel financiero';
-        renderFinancialEmptyState('No fue posible leer el archivo seleccionado.');
-        showNotice('No fue posible leer el archivo seleccionado.', 'bg-red-600');
-      };
-      reader.readAsArrayBuffer(file);
+    function loadFinancialWorkbookSource(source, fileName) {
+      financialWorkbookSource = source.slice();
+      financialWorkbook = XLSX.read(financialWorkbookSource, { type: 'array', cellDates: false });
+      financialCellUpdates = new Map();
+      financialFileName = fileName;
+      const sheets = financialWorkbook.SheetNames.map((name) => ({
+        name,
+        sheet: financialWorkbook.Sheets[name],
+        rows: XLSX.utils.sheet_to_json(financialWorkbook.Sheets[name], { header: 1, defval: '' })
+      }));
+      const sheetMatch = sheets.find(({ name }) => name === FINANCIAL_DRIVE_SHEET_NAME)
+        || sheets.find(({ rows }) => rows.slice(0, 10).some((row) =>
+          row.some((cell) => ['empresa', 'razon social', 'razon social empresa'].includes(normalizeFinancialHeader(cell)))
+        ));
+      if (!sheetMatch) throw new Error('No se encontró una hoja con la columna Empresa o Razón social.');
+
+      financialWorksheet = sheetMatch.sheet;
+      financialWorksheetName = sheetMatch.name;
+      const headerRowIndex = sheetMatch.rows.findIndex((row) =>
+        row.some((cell) => ['empresa', 'razon social', 'razon social empresa'].includes(normalizeFinancialHeader(cell)))
+      );
+      financialHeaderRowIndex = headerRowIndex;
+      financialHeaderColumns = sheetMatch.rows[headerRowIndex].map((cell) => cleanText(cell));
+      financialCompanyData = parseFinancialCompanyRows(sheetMatch.rows, headerRowIndex, financialHeaderColumns);
+      const companies = Object.keys(financialCompanyData);
+      if (!companies.length) throw new Error('No se encontraron empresas en la hoja seleccionada.');
+
+      document.getElementById('financialWorkbookLoadBtn').disabled = false;
+      document.getElementById('financialWorkbookLabel').textContent = 'Actualizar desde Google Drive';
+      setFinancialDriveStatus(`${fileName}: ${companies.length} empresas cargadas desde “${financialWorksheetName}”.`);
+      document.getElementById('financialCompanySearch').disabled = false;
+      document.getElementById('financialCompanySelect').disabled = false;
+      document.getElementById('financialCompanyViewBtn').disabled = false;
+      document.getElementById('financialWorkbookExportBtn').classList.remove('hidden');
+      document.getElementById('financialCompanyPreview').classList.remove('hidden');
+      renderFinancialCompanyOptions();
+      financialDriveLoaded = true;
+      updateFinancialEditorControls();
     }
 
     function parseFinancialCompanyRows(rows, headerRowIndex, headers) {
@@ -1556,13 +1881,13 @@
       })).filter((service) => service.index >= 0);
       const paymentIndexes = FINANCIAL_PAYMENT_OPTIONS.map((payment) => ({
         payment,
-        index: findFinancialHeaderIndex(headers, [payment.header]),
+        index: findFinancialHeaderIndex(headers, [payment.header, ...(payment.aliases || [])]),
         periodIndex: findFinancialHeaderIndex(headers, [`Periodicidad ${payment.label}`])
       }));
       const indexes = {
         smlv: findFinancialHeaderIndex(headers, ['SMLV 2026', 'SMMLV 2026']),
         percentage: findFinancialHeaderIndex(headers, ['% que paga del SMMLV', '% que paga del SMLV', 'Porcentaje SMLV', '% SMMLV']),
-        notes: findFinancialHeaderIndex(headers, ['Nota', 'Notas', 'Observaciones']),
+        notes: findFinancialHeaderIndex(headers, ['Nota', 'Notas']),
         negotiation: findFinancialHeaderIndex(headers, ['NEGOCIACIÓN ESPECIAL', 'Negociación especial']),
         billingTitle: findFinancialHeaderIndex(headers, ['Novedad']),
         billingDate: findFinancialHeaderIndex(headers, ['Fecha de la novedad']),
@@ -1636,7 +1961,10 @@
           } else record.servicios.push({ nombre: service, anioInicio: startYear, consumo2026: true });
         });
         if (indexes.notes >= 0 && cleanText(row[indexes.notes])) {
-          record.novedades.push({ fecha: '', titulo: 'Nota', detalle: cleanText(row[indexes.notes]) });
+          const note = cleanText(row[indexes.notes]);
+          const notes = record.notas ? record.notas.split('\n') : [];
+          if (!notes.includes(note)) notes.push(note);
+          record.notas = notes.join('\n');
         }
         if (indexes.negotiation >= 0 && cleanText(row[indexes.negotiation])) {
           record.negociaciones.push(cleanText(row[indexes.negotiation]));
@@ -1752,6 +2080,7 @@
       if (!selectedCompany) {
         document.getElementById('financialCompanyViewBtn').disabled = true;
         document.getElementById('financialCompanyPreview').classList.add('hidden');
+        updateFinancialEditorControls();
         return;
       }
       currentFinancialCompany = selectedCompany;
@@ -1772,6 +2101,7 @@
       document.getElementById('financialDetalleRiesgo').textContent = formatMoneyValue(record.pagos.riesgo?.monto);
       renderFinancialServices(selectedCompany);
       renderFinancialNotes(selectedCompany);
+      updateFinancialEditorControls();
       lucide.createIcons();
     }
 
@@ -1833,95 +2163,31 @@
       document.getElementById('financialProfileModal').classList.add('hidden');
     }
 
-    let financialPinAction = '';
-    let financialPinCompany = '';
-
-    function showFinancialPinModal(action) {
-      financialPinAction = action;
-      const isSetup = action === 'setup';
-      const isInitialSetup = isSetup && !getStoredFinancialPin();
-      document.getElementById('financialPinTitle').textContent = isSetup ? 'Configurar PIN de edición' : action === 'change-current' ? 'Cambiar PIN' : 'Validar PIN';
-      document.getElementById('financialPinDescription').textContent = isSetup
-        ? 'Cree un PIN personal de 4 dígitos. Este PIN se guarda en este navegador.'
-        : action === 'change-current'
-          ? 'Ingrese su PIN actual para poder cambiarlo.'
-          : 'Ingrese el PIN de 4 dígitos para editar esta hoja de vida.';
-      document.getElementById('financialPinConfirmWrapper').classList.toggle('hidden', !isSetup);
-      document.getElementById('financialPinSubmitBtn').textContent = isSetup ? 'Guardar PIN' : action === 'change-current' ? 'Continuar' : 'Validar PIN';
-      document.getElementById('financialPinInput').value = '';
-      document.getElementById('financialPinConfirmInput').value = '';
-      document.getElementById('financialPinError').classList.add('hidden');
-      document.getElementById('financialPinModal').classList.remove('hidden');
-      document.getElementById('financialPinInput').focus();
-      if (isInitialSetup) document.getElementById('financialPinDescription').textContent = 'Este navegador aún no tiene PIN. Cree uno personal de 4 dígitos y confírmelo.';
-    }
-
-    function closeFinancialPinModal() {
-      document.getElementById('financialPinModal').classList.add('hidden');
-      financialPinAction = '';
-      financialPinCompany = '';
-    }
-
-    function setFinancialPinError(message) {
-      const error = document.getElementById('financialPinError');
-      error.textContent = message;
-      error.classList.remove('hidden');
-    }
-
-    async function handleFinancialPinSubmit() {
-      const pin = document.getElementById('financialPinInput').value.trim();
-      if (!/^\d{4}$/.test(pin)) {
-        setFinancialPinError('El PIN debe tener exactamente 4 dígitos.');
-        return;
-      }
-      try {
-        if (financialPinAction === 'setup') {
-          const confirmation = document.getElementById('financialPinConfirmInput').value.trim();
-          if (pin !== confirmation) {
-            setFinancialPinError('Los PIN no coinciden. Verifique e intente de nuevo.');
-            return;
-          }
-          const saltBytes = window.crypto.getRandomValues(new Uint8Array(16));
-          const salt = Array.from(saltBytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
-          localStorage.setItem(FINANCIAL_PIN_KEY, `${salt}:${await hashFinancialPin(pin, salt)}`);
-          closeFinancialPinModal();
-          showNotice('PIN configurado en este navegador.', 'bg-ceo-blue');
-          return;
-        }
-
-        const savedPin = getStoredFinancialPin();
-        if (!savedPin) {
-          setFinancialPinError('No hay un PIN configurado. Cierre esta ventana y use “Configurar PIN”.');
-          return;
-        }
-        const [salt, savedHash] = savedPin.split(':');
-        if (await hashFinancialPin(pin, salt) !== savedHash) {
-          setFinancialPinError('PIN incorrecto. No se realizaron cambios.');
-          return;
-        }
-        if (financialPinAction === 'change-current') {
-          showFinancialPinModal('setup');
-          return;
-        }
-        const company = financialPinCompany;
-        closeFinancialPinModal();
-        prepareFinancialEditForm(company);
-      } catch (error) {
-        console.error(error);
-        setFinancialPinError(error.message || 'No fue posible validar el PIN en este navegador.');
-      }
+    function updateFinancialEditorControls() {
+      const isAuthorizedEditor = FINANCIAL_EDITOR_EMAILS.has(financialDriveEmail);
+      const hasWorkbook = Boolean(financialDriveLoaded && financialWorkbook && financialWorksheet);
+      const selectedCompany = Boolean(document.getElementById('financialCompanySelect').value);
+      document.getElementById('financialCompanyEditAccessBtn').disabled = !isAuthorizedEditor || !hasWorkbook || !selectedCompany;
+      document.getElementById('financialCompanyEditBtn').classList.toggle('hidden', !isAuthorizedEditor || !hasWorkbook);
     }
 
     function openFinancialEditModal() {
       const company = document.getElementById('financialCompanySelect').value;
       if (!company) return;
-      const savedPin = getStoredFinancialPin();
-      if (!savedPin) {
-        showNotice('Primero configure su PIN con el botón “Configurar PIN”.', 'bg-amber-600');
+      if (!FINANCIAL_EDITOR_EMAILS.has(financialDriveEmail)) {
+        showNotice('La edición está habilitada solo para las cuentas CEO autorizadas.', 'bg-amber-600');
         return;
       }
-      financialPinCompany = company;
-      showFinancialPinModal('edit');
+      if (!financialDriveWriteAccessToken) {
+        if (!financialDriveWriteTokenClient) {
+          showNotice('El acceso de escritura de Google no está disponible.', 'bg-red-600');
+          return;
+        }
+        pendingFinancialEditCompany = company;
+        financialDriveWriteTokenClient.requestAccessToken({ prompt: 'consent' });
+        return;
+      }
+      prepareFinancialEditForm(company);
     }
 
     function prepareFinancialEditForm(company) {
@@ -2011,8 +2277,9 @@
       financialWorksheet['!ref'] = XLSX.utils.encode_range(range);
     }
 
-    function writeFinancialColumn(rowIndex, header, value) {
-      writeFinancialCell(rowIndex, ensureFinancialHeaderColumn(header), value);
+    function writeFinancialColumn(rowIndex, header, value, aliases = []) {
+      const columnIndex = findFinancialHeaderIndex(financialHeaderColumns, [header, ...aliases]);
+      writeFinancialCell(rowIndex, columnIndex >= 0 ? columnIndex : ensureFinancialHeaderColumn(header), value);
     }
 
     function parseFinancialWorkbookXml(xml, description) {
@@ -2171,54 +2438,84 @@
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     }
 
+    async function createFinancialWorkbookBlob() {
+      const zip = await JSZip.loadAsync(financialWorkbookSource);
+      const workbookFile = zip.file('xl/workbook.xml');
+      const relationshipsFile = zip.file('xl/_rels/workbook.xml.rels');
+      if (!workbookFile || !relationshipsFile) throw new Error('El archivo no contiene la estructura de un libro .xlsx válido.');
+      const [workbookXml, relationshipsXml] = await Promise.all([
+        workbookFile.async('string'),
+        relationshipsFile.async('string')
+      ]);
+      const worksheetPath = getFinancialWorksheetPath(workbookXml, relationshipsXml);
+      const worksheetFile = zip.file(worksheetPath);
+      if (!worksheetFile) throw new Error(`No se encontró el XML de la hoja “${financialWorksheetName}”.`);
+      const worksheetXml = await worksheetFile.async('string');
+      zip.file(worksheetPath, applyFinancialCellUpdates(worksheetXml));
+      return zip.generateAsync({
+        type: 'blob',
+        mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        compression: 'DEFLATE',
+        compressionOptions: { level: 6 }
+      });
+    }
+
     async function exportFinancialWorkbook() {
       if (!financialWorkbook || !financialWorksheet || !financialWorkbookSource) {
-        showNotice('Cargue primero el Excel financiero.', 'bg-amber-600');
+        showNotice('Conecte Google Drive antes de descargar el Excel.', 'bg-amber-600');
         return;
       }
       try {
         const baseName = financialFileName.replace(/\.(xlsx|xls)$/i, '');
-        const outputFileName = `${baseName} - actualizado.xlsx`;
-        if (!/\.xlsx$/i.test(financialFileName)) {
-          XLSX.writeFile(financialWorkbook, outputFileName);
-          document.getElementById('financialWorkbookStatus').textContent = 'Se exportó el archivo .xls a .xlsx. Para conservar exactamente sus formatos, guárdelo como .xlsx antes de cargarlo.';
-          showNotice('Excel exportado. Para conservar el formato original, cargue un archivo .xlsx.', 'bg-amber-600');
-          return;
-        }
-
-        const zip = await JSZip.loadAsync(financialWorkbookSource);
-        const workbookFile = zip.file('xl/workbook.xml');
-        const relationshipsFile = zip.file('xl/_rels/workbook.xml.rels');
-        if (!workbookFile || !relationshipsFile) throw new Error('El archivo no contiene la estructura de un libro .xlsx válido.');
-        const [workbookXml, relationshipsXml] = await Promise.all([
-          workbookFile.async('string'),
-          relationshipsFile.async('string')
-        ]);
-        const worksheetPath = getFinancialWorksheetPath(workbookXml, relationshipsXml);
-        const worksheetFile = zip.file(worksheetPath);
-        if (!worksheetFile) throw new Error(`No se encontró el XML de la hoja “${financialWorksheetName}”.`);
-        const worksheetXml = await worksheetFile.async('string');
-        zip.file(worksheetPath, applyFinancialCellUpdates(worksheetXml));
-        const blob = await zip.generateAsync({
-          type: 'blob',
-          mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-          compression: 'DEFLATE',
-          compressionOptions: { level: 6 }
-        });
-        downloadFinancialWorkbookBlob(blob, outputFileName);
-        document.getElementById('financialWorkbookStatus').textContent = 'Se descargó el Excel actualizado. Use ese archivo la próxima vez que abra el módulo.';
-        showNotice('Excel actualizado descargado.', 'bg-emerald-600');
+        const blob = await createFinancialWorkbookBlob();
+        downloadFinancialWorkbookBlob(blob, `${baseName} - actualizado.xlsx`);
+        showNotice('Copia Excel descargada.', 'bg-emerald-600');
       } catch (error) {
         console.error(error);
         const message = error.message || 'No fue posible descargar el Excel actualizado.';
-        document.getElementById('financialWorkbookStatus').textContent = message;
+        setFinancialDriveStatus(message, true);
         showNotice(message, 'bg-red-600');
       }
     }
 
-    function saveFinancialEditForm() {
+    async function persistFinancialChangesToDrive() {
+      if (!FINANCIAL_EDITOR_EMAILS.has(financialDriveEmail) || !financialDriveWriteAccessToken) {
+        throw new Error('La sesión no tiene permiso para editar esta hoja. Vuelva a autorizar la cuenta CEO.');
+      }
+      if (!financialCellUpdates.size) throw new Error('No se encontraron cambios para guardar en Google Drive.');
+
+      const updatedWorkbook = await createFinancialWorkbookBlob();
+      const uploadUrl = new URL(`https://www.googleapis.com/upload/drive/v3/files/${FINANCIAL_DRIVE_SPREADSHEET_ID}`);
+      uploadUrl.searchParams.set('uploadType', 'media');
+      uploadUrl.searchParams.set('supportsAllDrives', 'true');
+      const response = await fetch(uploadUrl, {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${financialDriveWriteAccessToken}`,
+          'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        },
+        body: updatedWorkbook
+      });
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload.error?.message || `Google Drive respondió con el estado ${response.status} al guardar.`);
+      }
+      financialWorkbookSource = new Uint8Array(await updatedWorkbook.arrayBuffer());
+      financialCellUpdates.clear();
+    }
+
+    async function saveFinancialEditForm() {
       const form = document.getElementById('financialEditForm');
       if (!form.dataset.company || !financialWorkbook || !financialWorksheet) return;
+      if (!FINANCIAL_EDITOR_EMAILS.has(financialDriveEmail) || !financialDriveWriteAccessToken) {
+        showNotice('Autorice la edición con una cuenta CEO habilitada antes de guardar.', 'bg-amber-600');
+        return;
+      }
+      const saveButton = document.getElementById('financialSaveBtn');
+      saveButton.disabled = true;
+      const originalSaveLabel = saveButton.textContent;
+      saveButton.textContent = 'Guardando en Drive...';
+      try {
       const originalKey = form.dataset.company;
       const record = JSON.parse(JSON.stringify(getFinancialCompanyRecord(originalKey)));
       const newName = cleanText(document.getElementById('financialFormNombre').value);
@@ -2313,18 +2610,18 @@
         'Fecha de Ingreso': record.fechaAfiliacion,
         'Fecha de retiro': record.fechaRetiro,
         'Fecha de reingreso': record.fechaReingreso,
-        Nota: record.notas,
         'Tarifa 2025': record.tarifa2025 === '' ? '' : parseNumericValue(record.tarifa2025) ?? String(record.tarifa2025),
         'Estado actual': record.estadoActual,
         'Activos a 31 de diciembre 2024': record.activos === '' ? '' : Number(record.activos),
         Empleados: record.empleados === '' ? '' : Number(record.empleados),
         'Reunión fidelización': record.reunionFidelizacion
       }).forEach(([header, value]) => writeFinancialColumn(primaryRow, header, value));
+      writeFinancialColumn(primaryRow, 'Notas', record.notas, ['Nota']);
       FINANCIAL_PAYMENT_OPTIONS.forEach((option) => {
         const payment = record.pagos[option.key] || {};
         const parsedAmount = typeof payment.monto === 'number' ? payment.monto : parseNumericValue(payment.monto);
         const exportAmount = payment.monto === '' ? '' : parsedAmount === null ? String(payment.monto) : parsedAmount;
-        writeFinancialColumn(primaryRow, option.header, exportAmount);
+        writeFinancialColumn(primaryRow, option.header, exportAmount, option.aliases || []);
         writeFinancialColumn(primaryRow, `Periodicidad ${option.label}`, payment.periodicidad || '');
       });
       record.servicios.forEach((service) => {
@@ -2332,14 +2629,26 @@
         writeFinancialColumn(primaryRow, `Año de inicio - ${service.nombre}`, service.anioInicio || '');
       });
 
+      await persistFinancialChangesToDrive();
       if (normalizeFinancialCompanyName(newName) !== normalizeFinancialCompanyName(originalKey)) {
         delete financialCompanyData[normalizeFinancialCompanyName(originalKey)];
       }
       financialCompanyData[normalizeFinancialCompanyName(newName)] = record;
+      currentFinancialCompany = normalizeFinancialCompanyName(newName);
       document.getElementById('financialEditModal').classList.add('hidden');
       renderFinancialCompanyOptions(document.getElementById('financialCompanySearch').value);
       openFinancialProfileModal();
-      exportFinancialWorkbook();
+      setFinancialDriveStatus(`Cambios guardados en Google Drive para ${record.nombre}.`);
+      showNotice('Cambios guardados directamente en Google Drive.', 'bg-emerald-600');
+      } catch (error) {
+        console.error(error);
+        const message = error.message || 'No fue posible guardar los cambios en Google Drive.';
+        setFinancialDriveStatus(message, true);
+        showNotice(message, 'bg-red-600');
+      } finally {
+        saveButton.disabled = false;
+        saveButton.textContent = originalSaveLabel;
+      }
     }
 
     function showNotice(message, className = 'bg-ceo-blue') {
@@ -2348,17 +2657,6 @@
       notice.textContent = message;
       document.body.appendChild(notice);
       setTimeout(() => notice.remove(), 4000);
-    }
-
-    async function hashFinancialPin(pin, salt) {
-      if (!window.crypto?.subtle) throw new Error('El navegador no permite validar el PIN de forma segura en esta página.');
-      const input = new TextEncoder().encode(`${salt}:${pin}`);
-      const digest = await window.crypto.subtle.digest('SHA-256', input);
-      return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
-    }
-
-    function configureFinancialPIN() {
-      showFinancialPinModal(getStoredFinancialPin() ? 'change-current' : 'setup');
     }
 
     const sustainableServiceRules = {
@@ -2806,38 +3104,71 @@
       setTimeout(() => notice.remove(), 4500);
     }
 
-    function processData(sheetData) {
-      processedData = { companies: new Set(), questions: [], matrix: {}, municipalities: new Set() };
-      const headerRow = sheetData[0];
-      const companyNames = [];
-      for (let col = 1; col < headerRow.length; col++) {
-        const compName = cleanText(headerRow[col]);
-        if (compName) {
-          companyNames[col] = compName;
-          processedData.companies.add(compName);
+    function processData(sheetData, companiesInRows = false) {
+      const nextData = { companies: new Set(), pendingCompanies: new Set(), questions: [], matrix: {}, municipalities: new Set(), companyMetadata: {} };
+      const headerRow = sheetData[0] || [];
+      if (companiesInRows) {
+        if (!normalizeFilterText(headerRow[0]).includes('empresa')) {
+          throw new Error('La hoja “Respuestas corregido” no tiene el encabezado esperado de empresa en la columna A.');
         }
-      }
-      for (let row = 1; row < sheetData.length; row++) {
-        const rawQuestion = sheetData[row][0];
-        if (!rawQuestion) continue;
-        const questionClean = cleanText(rawQuestion);
-        if (!questionClean || questionClean.toUpperCase().includes('PREGUNTA')) continue;
-        processedData.questions.push(questionClean);
-        for (let col = 1; col < headerRow.length; col++) {
-          const company = companyNames[col];
+        const questionColumns = headerRow
+          .map((header, index) => ({ index, question: cleanText(header) }))
+          .filter(column => column.index > 0 && column.question);
+        if (questionColumns.length === 0) {
+          throw new Error('La hoja “Respuestas corregido” no contiene preguntas o variables en las columnas siguientes a la A.');
+        }
+        for (const column of questionColumns) nextData.questions.push(column.question);
+
+        for (let row = 1; row < sheetData.length; row++) {
+          const company = cleanText(sheetData[row][0]);
           if (!company) continue;
-          if (!processedData.matrix[company]) {
-            processedData.matrix[company] = {};
+          const responses = questionColumns.map(column => cleanText(sheetData[row][column.index]));
+          if (!responses.some(Boolean)) {
+            nextData.pendingCompanies.add(company);
+            continue;
           }
-          const response = cleanText(sheetData[row][col]);
-          processedData.matrix[company][questionClean] = response || 'Sin Respuesta';
-          
-          if (questionClean === 'Municipio' && response && !isInvalidAnswer(response)) {
-            processedData.municipalities.add(response);
+
+          nextData.companies.add(company);
+          nextData.matrix[company] = {};
+          questionColumns.forEach((column, index) => {
+            const response = responses[index];
+            nextData.matrix[company][column.question] = response || 'Sin Respuesta';
+            if (column.question === 'Municipio' && response && !isInvalidAnswer(response)) {
+              nextData.municipalities.add(response);
+            }
+          });
+        }
+      } else {
+        const companyNames = [];
+        for (let col = 1; col < headerRow.length; col++) {
+          const compName = cleanText(headerRow[col]);
+          if (compName) {
+            companyNames[col] = compName;
+            nextData.companies.add(compName);
+          }
+        }
+        for (let row = 1; row < sheetData.length; row++) {
+          const rawQuestion = sheetData[row][0];
+          if (!rawQuestion) continue;
+          const questionClean = cleanText(rawQuestion);
+          if (!questionClean || questionClean.toUpperCase().includes('PREGUNTA')) continue;
+          nextData.questions.push(questionClean);
+          for (let col = 1; col < headerRow.length; col++) {
+            const company = companyNames[col];
+            if (!company) continue;
+            if (!nextData.matrix[company]) nextData.matrix[company] = {};
+            const response = cleanText(sheetData[row][col]);
+            nextData.matrix[company][questionClean] = response || 'Sin Respuesta';
+
+            if (questionClean === 'Municipio' && response && !isInvalidAnswer(response)) {
+              nextData.municipalities.add(response);
+            }
           }
         }
       }
-      processedData.questions = orderQuestions(Array.from(new Set(processedData.questions)));
+
+      nextData.questions = orderQuestions(Array.from(new Set(nextData.questions)));
+      processedData = nextData;
       updateSelectors();
       updateMunicipalTicker();
     }
@@ -2870,6 +3201,14 @@
 
       document.getElementById('kpiTotalEmpresas').textContent = processedData.companies.size;
       document.getElementById('kpiTotalPreguntas').textContent = processedData.questions.length;
+      document.getElementById('kpiPendingCompanies').textContent = processedData.pendingCompanies.size;
+      const pendingCompaniesList = document.getElementById('pendingCompaniesList');
+      pendingCompaniesList.replaceChildren();
+      Array.from(processedData.pendingCompanies).sort().forEach(company => {
+        const item = document.createElement('li');
+        item.textContent = company;
+        pendingCompaniesList.appendChild(item);
+      });
     }
 
     function filterQuestionOptions(event) {
@@ -4191,9 +4530,20 @@
     function updateCompanyView() {
       const selectedCompany = document.getElementById('companySelect').value || Array.from(processedData.companies)[0];
       if (!selectedCompany) return;
+      renderCompanyResponseMetadata(selectedCompany);
       renderCompanySustainabilityScore(selectedCompany);
       renderRadarChart(selectedCompany);
       renderCompanyBenchmarkingTable(selectedCompany);
+    }
+
+    function renderCompanyResponseMetadata(company) {
+      const metadata = processedData.companyMetadata?.[company];
+      const container = document.getElementById('companyResponseMetadata');
+      const responseDate = document.getElementById('companyResponseDate');
+      const respondentRole = document.getElementById('companyRespondentRole');
+      responseDate.textContent = metadata?.responseDate || 'No disponible';
+      respondentRole.textContent = metadata?.respondentRole || 'No disponible';
+      container.classList.toggle('hidden', !metadata);
     }
 
     function renderRadarChart(company) {
