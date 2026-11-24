@@ -653,21 +653,11 @@
         <div id="viewSustainableModel" class="hidden space-y-6">
           <div class="glass-card rounded-xl p-5 shadow-sm border-t-4 border-ceo-green">
             <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-4">
-              <div class="space-y-3 flex-1">
+              <div class="space-y-1.5 flex-1">
                 <label class="text-xs font-bold text-slate-600 uppercase tracking-wider flex items-center space-x-1">
                   <i data-lucide="workflow" class="w-3.5 h-3.5 text-ceo-green"></i>
                   <span>Modelo de Gestión Sostenible CEO</span>
                 </label>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div class="space-y-1">
-                    <label for="sustainableCompanySelect" class="text-[11px] font-semibold text-slate-500">Filtrar por empresa</label>
-                    <select id="sustainableCompanySelect" onchange="updateSustainableModelView()" aria-label="Filtrar por empresa" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-800 focus:ring-2 focus:ring-ceo-green focus:outline-none transition-all"></select>
-                  </div>
-                  <div class="space-y-1">
-                    <label for="sustainableServiceSelect" class="text-[11px] font-semibold text-slate-500">Filtrar por servicio CEO recomendado</label>
-                    <select id="sustainableServiceSelect" onchange="updateSustainableModelView()" aria-label="Filtrar por servicio CEO recomendado" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-800 focus:ring-2 focus:ring-ceo-green focus:outline-none transition-all"></select>
-                  </div>
-                </div>
               </div>
               <div class="flex flex-wrap gap-2">
                 <button id="sustainableWorkbookLoadBtn" type="button" class="bg-ceo-blue hover:bg-ceo-bluelight text-white text-xs font-semibold px-3 py-2.5 rounded-lg shadow-sm transition-all flex items-center space-x-2">
@@ -717,6 +707,16 @@
                 <div class="flex items-center gap-3">
                   <span id="sustainableSummaryCount" class="bg-emerald-50 text-ceo-green font-bold text-xs px-3 py-2 rounded-full">0 empresas</span>
                   <input id="sustainableSummarySearch" type="search" placeholder="Buscar empresa o servicio..." aria-label="Buscar en recomendaciones por empresa o servicio" class="w-full sm:w-64 bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-700 focus:ring-2 focus:ring-ceo-green focus:outline-none">
+                </div>
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div class="space-y-1">
+                  <label for="sustainableCompanySelect" class="text-[11px] font-semibold text-slate-500">Filtrar por empresa</label>
+                  <select id="sustainableCompanySelect" onchange="updateSustainableModelView()" aria-label="Filtrar por empresa" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-800 focus:ring-2 focus:ring-ceo-green focus:outline-none transition-all"></select>
+                </div>
+                <div class="space-y-1">
+                  <label for="sustainableServiceSelect" class="text-[11px] font-semibold text-slate-500">Filtrar por servicio CEO recomendado</label>
+                  <select id="sustainableServiceSelect" onchange="updateSustainableModelView()" aria-label="Filtrar por servicio CEO recomendado" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-800 focus:ring-2 focus:ring-ceo-green focus:outline-none transition-all"></select>
                 </div>
               </div>
               <div class="overflow-x-auto custom-scrollbar border border-slate-200 rounded-lg">
