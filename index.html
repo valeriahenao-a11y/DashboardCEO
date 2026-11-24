@@ -661,6 +661,9 @@
                 <select id="sustainableCompanySelect" onchange="updateSustainableModelView()" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-800 focus:ring-2 focus:ring-ceo-green focus:outline-none transition-all"></select>
               </div>
               <div class="flex flex-wrap gap-2">
+                <button id="sustainableWorkbookLoadBtn" type="button" class="bg-ceo-blue hover:bg-ceo-bluelight text-white text-xs font-semibold px-3 py-2.5 rounded-lg shadow-sm transition-all flex items-center space-x-2">
+                  <i data-lucide="cloud-download" class="w-4 h-4"></i><span id="sustainableWorkbookLabel">Conectar Novedades desde Drive</span>
+                </button>
                 <button id="sustainableVisitFilterButton" onclick="toggleSustainableVisitFilter()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-3 py-2.5 rounded-lg shadow-sm transition-all flex items-center space-x-2" aria-pressed="false">
                   <i data-lucide="clipboard-check" class="w-4 h-4"></i><span>Mostrar empresas con visita</span>
                 </button>
@@ -673,7 +676,7 @@
                 </button>
               </div>
             </div>
-            <p id="sustainableModelStatus" class="text-xs text-slate-500 mt-3">Cargando servicios y novedades desde el archivo CEO…</p>
+            <p id="sustainableModelStatus" class="text-xs text-slate-500 mt-3" role="status">Conecte Google Drive para cargar el Excel de novedades financieras y uso de servicios CEO.</p>
           </div>
 
           <div class="glass-card rounded-xl p-4 shadow-sm flex flex-col lg:flex-row gap-5 items-center">
@@ -686,8 +689,8 @@
 
           <div id="sustainableModelEmpty" class="glass-card rounded-xl p-8 text-center border-dashed border-2 border-slate-300">
             <div class="w-12 h-12 bg-emerald-50 text-ceo-green rounded-full flex items-center justify-center mx-auto mb-3"><i data-lucide="file-spreadsheet" class="w-6 h-6"></i></div>
-            <h3 id="sustainableModelEmptyTitle" class="text-base font-bold text-slate-800">Cargando servicios CEO…</h3>
-            <p id="sustainableModelEmptyDescription" class="text-xs text-slate-500 max-w-lg mx-auto mt-1">Leyendo los datos de novedades financieras y uso de servicios CEO.</p>
+            <h3 id="sustainableModelEmptyTitle" class="text-base font-bold text-slate-800">Conecte el Excel de servicios CEO</h3>
+            <p id="sustainableModelEmptyDescription" class="text-xs text-slate-500 max-w-lg mx-auto mt-1">Use el botón “Conectar Novedades desde Drive” para cargar los servicios y activar la correlación.</p>
           </div>
 
           <div id="sustainableModelContent" class="hidden space-y-6">
@@ -1196,7 +1199,6 @@
       renderSidebarModules();
       populateSustainableVisitReportOptions();
       renderSustainableInventoryState();
-      loadSustainableServicesWorkbook();
       renderFinancialEmptyState();
       setupGoogleSheetsConnection();
       setupFinancialDriveConnection();
@@ -1212,6 +1214,7 @@
       document.getElementById('companySearch').addEventListener('input', filterCompanyOptions);
       document.getElementById('companySelect').addEventListener('change', updateCompanyView);
       document.getElementById('financialWorkbookLoadBtn').addEventListener('click', connectFinancialDrive);
+      document.getElementById('sustainableWorkbookLoadBtn').addEventListener('click', connectFinancialDrive);
       document.getElementById('financialCompanySearch').addEventListener('input', (event) => renderFinancialCompanyOptions(event.target.value));
       document.getElementById('financialCompanySelect').addEventListener('change', updateFinancialCompanyView);
       document.getElementById('financialCompanyViewBtn').addEventListener('click', openFinancialProfileModal);
@@ -1246,7 +1249,9 @@
     function setupFinancialDriveConnection() {
       if (!window.google?.accounts?.oauth2) {
         setFinancialDriveStatus('No se pudo cargar el inicio de sesión de Google.', true);
+        setSustainableModelStatus('No se pudo cargar el inicio de sesión de Google Drive.', true);
         document.getElementById('financialWorkbookLoadBtn').disabled = true;
+        document.getElementById('sustainableWorkbookLoadBtn').disabled = true;
         return;
       }
 
@@ -1256,7 +1261,9 @@
         callback: handleFinancialDriveTokenResponse,
         error_callback: (error) => {
           document.getElementById('financialWorkbookLoadBtn').disabled = false;
+          document.getElementById('sustainableWorkbookLoadBtn').disabled = false;
           setFinancialDriveStatus(error.message || 'No se pudo iniciar sesión en Google Drive.', true);
+          setSustainableModelStatus(error.message || 'No se pudo iniciar sesión en Google Drive.', true);
         }
       });
       financialDriveWriteTokenClient = google.accounts.oauth2.initTokenClient({
@@ -1277,30 +1284,47 @@
       status.classList.toggle('text-slate-500', !isError);
     }
 
+    function setSustainableModelStatus(message, isError = false) {
+      const status = document.getElementById('sustainableModelStatus');
+      status.textContent = message;
+      status.classList.toggle('text-rose-600', isError);
+      status.classList.toggle('text-slate-500', !isError);
+      if (isError && !sustainableInventory.services.length) {
+        document.getElementById('sustainableModelEmptyTitle').textContent = 'No se pudo cargar el Excel de Drive';
+        document.getElementById('sustainableModelEmptyDescription').textContent = 'Verifique los permisos de Google Drive y que el archivo tenga las columnas de uso de servicios CEO.';
+      }
+    }
+
     function connectFinancialDrive() {
       if (!financialDriveTokenClient) {
         setFinancialDriveStatus('El inicio de sesión de Google Drive no está disponible.', true);
+        setSustainableModelStatus('El inicio de sesión de Google Drive no está disponible.', true);
         return;
       }
       document.getElementById('financialWorkbookLoadBtn').disabled = true;
+      document.getElementById('sustainableWorkbookLoadBtn').disabled = true;
       financialDriveLoaded = false;
       financialDriveAccessToken = '';
       financialDriveWriteAccessToken = '';
       financialDriveEmail = '';
       updateFinancialEditorControls();
       setFinancialDriveStatus('Esperando autorización para leer la hoja privada en Google Drive…');
+      setSustainableModelStatus('Esperando autorización para leer el Excel privado de novedades en Google Drive…');
       financialDriveTokenClient.requestAccessToken({ prompt: 'select_account' });
     }
 
     async function handleFinancialDriveTokenResponse(response) {
       if (response.error) {
         document.getElementById('financialWorkbookLoadBtn').disabled = false;
+        document.getElementById('sustainableWorkbookLoadBtn').disabled = false;
         setFinancialDriveStatus(response.error_description || 'Google no autorizó el acceso a la hoja.', true);
+        setSustainableModelStatus(response.error_description || 'Google no autorizó el acceso al Excel de novedades.', true);
         return;
       }
 
       financialDriveAccessToken = response.access_token;
       setFinancialDriveStatus('Verificando la cuenta y leyendo la hoja de Google Drive…');
+      setSustainableModelStatus('Verificando el acceso y cargando novedades y servicios desde Google Drive…');
       try {
         financialDriveEmail = await verifyGoogleWorkspaceAccount(financialDriveAccessToken);
         await loadFinancialWorkbookFromDrive(financialDriveAccessToken);
@@ -1312,9 +1336,11 @@
         financialDriveLoaded = false;
         updateFinancialEditorControls();
         setFinancialDriveStatus(error.message || 'No se pudo cargar la hoja financiera desde Google Drive.', true);
+        setSustainableModelStatus(error.message || 'No se pudo cargar el Excel de novedades desde Google Drive.', true);
         showNotice(error.message || 'No se pudo cargar la hoja financiera desde Google Drive.', 'bg-red-600');
       } finally {
         document.getElementById('financialWorkbookLoadBtn').disabled = false;
+        document.getElementById('sustainableWorkbookLoadBtn').disabled = false;
       }
     }
 
@@ -1871,6 +1897,17 @@
       financialCompanyData = parseFinancialCompanyRows(sheetMatch.rows, headerRowIndex, financialHeaderColumns);
       const companies = Object.keys(financialCompanyData);
       if (!companies.length) throw new Error('No se encontraron empresas en la hoja seleccionada.');
+
+      try {
+        processSustainableCompanyServices(sheetMatch.rows.slice(headerRowIndex), fileName);
+        document.getElementById('sustainableWorkbookLabel').textContent = 'Actualizar desde Drive';
+      } catch (error) {
+        console.error('No fue posible interpretar los servicios del Excel de Google Drive.', error);
+        sustainableInventory = { companies: new Set(), services: [], matrix: {}, fileName: '' };
+        document.getElementById('sustainableWorkbookLabel').textContent = 'Conectar Novedades desde Drive';
+        setSustainableModelStatus(`No fue posible leer los servicios del Excel de Drive. ${error.message}`, true);
+        renderSustainableInventoryState();
+      }
 
       document.getElementById('financialWorkbookLoadBtn').disabled = false;
       document.getElementById('financialWorkbookLabel').textContent = 'Actualizar desde Google Drive';
@@ -2679,7 +2716,6 @@
       setTimeout(() => notice.remove(), 4000);
     }
 
-    const SUSTAINABLE_SERVICES_WORKBOOK = 'Novedades financieras y uso de servicios CEO - actualizado.xlsx';
     const SUSTAINABLE_VISIT_REPORTS = [
       {
         aliases: ['Compañía Nacional de Chocolates', 'COMPAÑIA NACIONAL DE CHOCOLATES S.A.S'],
@@ -2752,28 +2788,6 @@
       PUMA: 'El Puma es una empresa sigilosa y altamente adaptable; cuya planeación estratégica es fuerte y musculosa, con características propias de un cazador implacable de oportunidades de mejora. Es una empresa ágil y con un salto amplio y observación aguda, que le permite tolerar hábilmente los obstáculos en el camino.',
       JAGUAR: 'El Jaguar es una empresa clave para mantener la salud de los ecosistemas del Oriente Antioqueño, es el más poderoso de los felinos y tiene la capacidad particular de adaptarse fácilmente a las condiciones del entorno e incluso poner en práctica su habilidad como buen nadador para sortear los retos que se presenten. Así mismo, posee un agudo sentido de observador del entorno, es fuerte, inteligente y hábil.'
     };
-
-    async function loadSustainableServicesWorkbook() {
-      const status = document.getElementById('sustainableModelStatus');
-      try {
-        const response = await fetch(encodeURI(SUSTAINABLE_SERVICES_WORKBOOK));
-        if (!response.ok) {
-          throw new Error(`El servidor respondió con el estado ${response.status}.`);
-        }
-        const source = new Uint8Array(await response.arrayBuffer());
-        const workbook = XLSX.read(source, { type: 'array' });
-        const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-        if (!worksheet) throw new Error('El archivo no contiene hojas de cálculo.');
-        const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '', raw: false });
-        processSustainableCompanyServices(rows, SUSTAINABLE_SERVICES_WORKBOOK);
-      } catch (error) {
-        console.error('No fue posible cargar el archivo de novedades y uso de servicios CEO.', error);
-        status.textContent = `No fue posible cargar “${SUSTAINABLE_SERVICES_WORKBOOK}”. ${error.message}`;
-        document.getElementById('sustainableModelEmptyTitle').textContent = 'Servicios CEO no disponibles';
-        document.getElementById('sustainableModelEmptyDescription').textContent = 'Verifique que el archivo de novedades y uso de servicios CEO esté disponible junto al dashboard.';
-        renderSustainableInventoryState();
-      }
-    }
 
     function handleSustainableVisitNotesUpload(event) {
       const file = event.target.files[0];
@@ -3004,7 +3018,7 @@
       document.getElementById('sustainableModelEmpty').classList.toggle('hidden', ready);
       document.getElementById('sustainableModelContent').classList.toggle('hidden', !ready);
       const status = document.getElementById('sustainableModelStatus');
-      if (status && ready) status.textContent = `${sustainableInventory.fileName} cargado: ${sustainableInventory.services.length} servicios CEO y ${sustainableInventory.companies.size} empresas.`;
+      if (status && ready) setSustainableModelStatus(`${sustainableInventory.fileName} cargado: ${sustainableInventory.services.length} servicios CEO y ${sustainableInventory.companies.size} empresas.`);
       populateSustainableCompanyOptions();
     }
 
@@ -3191,7 +3205,7 @@
 
       intermediateChildren.push(sustainableReportHeading('1. Introducción'));
       intermediateChildren.push(sustainableReportParagraph(`El presente informe recoge los principales hallazgos del Diagnóstico de Sostenibilidad CEO realizado a ${analysis.company} y los relaciona con los servicios disponibles en el Modelo de Gestión Empresarial Sostenible CEO. El propósito es identificar prioridades, retos y oportunidades que orienten acciones de valor compartido, fortalezcan los programas y macroproyectos de la Corporación y contribuyan a consolidar una empresa más competitiva, resiliente y comprometida con el desarrollo sostenible del territorio.`));
-      intermediateChildren.push(sustainableReportParagraph(`El cruce considera las respuestas registradas en el diagnóstico, el nivel de madurez resultante y los servicios CEO registrados en ${sustainableInventory.fileName || SUSTAINABLE_SERVICES_WORKBOOK}. Las recomendaciones son una agenda de conversación y deben validarse con la organización antes de definir un plan de trabajo.`));
+      intermediateChildren.push(sustainableReportParagraph(`El cruce considera las respuestas registradas en el diagnóstico, el nivel de madurez resultante y los servicios CEO registrados en ${sustainableInventory.fileName || 'el Excel de novedades financieras y uso de servicios CEO'}. Las recomendaciones son una agenda de conversación y deben validarse con la organización antes de definir un plan de trabajo.`));
 
       intermediateChildren.push(sustainableReportHeading('2. Hallazgos principales y oportunidades de mejora'));
       const moduleSections = [
