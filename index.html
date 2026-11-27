@@ -158,6 +158,10 @@
           <div class="pb-1 sidebar-header-text">
             <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-2">Vistas Generales</p>
           </div>
+          <button onclick="switchView('report')" id="nav-report" class="nav-btn w-full flex items-center space-x-2.5 px-3 py-2.5 text-xs font-medium rounded-lg text-slate-600 hover:bg-slate-100 transition-all text-left" title="Informe de Resultados">
+            <i data-lucide="file-text" class="w-4 h-4 flex-shrink-0"></i>
+            <span class="sidebar-text truncate">Informe de Resultados</span>
+          </button>
           <button onclick="switchView('regional')" id="nav-regional" class="nav-btn active w-full flex items-center space-x-2.5 px-3 py-2.5 text-xs font-medium rounded-lg text-white bg-ceo-blue transition-all text-left" title="Visión Regional (Por Pregunta)">
             <i data-lucide="pie-chart" class="w-4 h-4 flex-shrink-0"></i>
             <span class="sidebar-text truncate">Visión Regional (Por Pregunta)</span>
@@ -252,6 +256,61 @@
               </div>
             </div>
           </div>
+        </div>
+
+        <div id="viewReport" class="hidden space-y-6">
+          <section class="rounded-2xl overflow-hidden shadow-sm bg-gradient-to-br from-ceo-blue via-ceo-blue to-slate-900 text-white">
+            <div class="p-6 sm:p-8">
+              <p class="text-xs font-bold uppercase tracking-[0.18em] text-emerald-300">Informe de resultados · CEO 2026</p>
+              <h2 class="text-2xl sm:text-3xl font-extrabold mt-2">Una lectura integrada de la sostenibilidad empresarial</h2>
+              <p class="text-sm text-slate-200 mt-3 max-w-3xl leading-relaxed">Explore los resultados agregados por capítulo, revise la distribución de cada pregunta y consulte una lectura descriptiva de los hallazgos. Los filtros de municipio y tamaño de empresa se aplican a todo el informe.</p>
+              <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-6">
+                <div class="rounded-xl bg-white/10 border border-white/10 p-4">
+                  <p class="text-[10px] uppercase tracking-wider text-slate-300">Empresas en la vista</p>
+                  <p id="reportKpiCompanies" class="text-2xl font-extrabold mt-1">0</p>
+                </div>
+                <div class="rounded-xl bg-white/10 border border-white/10 p-4">
+                  <p class="text-[10px] uppercase tracking-wider text-slate-300">Preguntas del informe</p>
+                  <p id="reportKpiQuestions" class="text-2xl font-extrabold mt-1">0</p>
+                </div>
+                <div class="rounded-xl bg-white/10 border border-white/10 p-4">
+                  <p class="text-[10px] uppercase tracking-wider text-slate-300">Municipios representados</p>
+                  <p id="reportKpiMunicipalities" class="text-2xl font-extrabold mt-1">0</p>
+                </div>
+                <div class="rounded-xl bg-white/10 border border-white/10 p-4">
+                  <p class="text-[10px] uppercase tracking-wider text-slate-300">Puntaje promedio global</p>
+                  <p id="reportKpiScore" class="text-2xl font-extrabold mt-1">—</p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="glass-card rounded-2xl p-5 sm:p-6 shadow-sm">
+            <div class="flex flex-col lg:flex-row lg:items-start justify-between gap-5">
+              <div class="max-w-sm">
+                <p class="text-xs font-bold uppercase tracking-wider text-ceo-green">Panorama del diagnóstico</p>
+                <h3 class="text-lg font-bold text-slate-800 mt-1">Desempeño por eje</h3>
+                <p id="reportSummaryText" class="text-xs text-slate-500 mt-2 leading-relaxed"></p>
+              </div>
+              <div id="reportScoreBars" class="w-full lg:max-w-2xl space-y-3"></div>
+            </div>
+            <div class="mt-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-relaxed text-amber-950">
+              <strong>Nota de lectura financiera:</strong> se presenta la cobertura de respuesta, no sumas ni promedios monetarios. Los montos agregados requieren validar unidades y formatos antes de su divulgación.
+            </div>
+          </section>
+
+          <section class="glass-card rounded-2xl p-4 sm:p-5 shadow-sm">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+              <div>
+                <p class="text-xs font-bold uppercase tracking-wider text-slate-500">Recorrido del informe</p>
+                <h3 class="text-base font-bold text-slate-800 mt-1">Seleccione un capítulo</h3>
+              </div>
+              <span class="text-[11px] text-slate-500">La clasificación de empresas se encuentra al final.</span>
+            </div>
+            <div id="reportChapterNav" class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-2"></div>
+          </section>
+
+          <section id="reportChapterContent" aria-live="polite"></section>
         </div>
 
         <!-- 1. VISIÓN REGIONAL -->
@@ -1166,6 +1225,15 @@
       "Beneficios y bienestar laboral"
     ];
 
+    const REPORT_CHAPTERS = [
+      { id: 'financial', number: '01', title: 'Datos financieros', module: 'Datos financieros', description: 'Perfil financiero y comercial de las empresas participantes. Los resultados monetarios se limitan a cobertura hasta validar la calidad de los montos.' },
+      { id: 'strategy', number: '02', title: 'Estrategia, Gobernanza y Gestión del Riesgo', module: 'Estrategia, Gobernanza y Gestión del Riesgo', description: 'Integración de la sostenibilidad en la estrategia, la gobernanza, la gestión del riesgo y la cadena de valor.' },
+      { id: 'environment', number: '03', title: 'Gestión Ambiental, Simbiosis Empresarial y Desarrollo Regenerativo', module: 'Gestión Ambiental, Simbiosis Empresarial y Desarrollo Regenerativo', description: 'Prácticas, capacidades y oportunidades asociadas con la gestión ambiental, la economía circular y la acción climática.' },
+      { id: 'social', number: '04', title: 'Gestión Social, Talento Humano y Desarrollo Territorial', module: 'Gestión Social, Talento Humano y Desarrollo Territorial', description: 'Relación con el territorio y las comunidades, desarrollo del talento y bienestar laboral.' },
+      { id: 'innovation', number: '05', title: 'Innovación, Investigación y Eficiencia Operativa', module: 'Innovación, Investigación y Eficiencia Operativa', description: 'Capacidades de innovación, investigación, desarrollo y continuidad operativa.' },
+      { id: 'categories', number: '06', title: 'Resultados por categoría', module: null, description: 'Distribución agregada de las empresas según puntaje y requisitos habilitantes del modelo CEO.' }
+    ];
+
     let processedData = { companies: new Set(), pendingCompanies: new Set(), questions: [], matrix: {}, municipalities: new Set(), companyMetadata: {} };
     const GOOGLE_OAUTH_CLIENT_ID = '459966982379-lqaa68th0o0td0qdgmfbmska8b2la494.apps.googleusercontent.com';
     const GOOGLE_SHEET_ID = '1lAPXA9n7kALdTBllGBBiNXIGHfR_V-UqrNH4c989cj8';
@@ -1191,6 +1259,7 @@
     let activeFilterMunicipio = 'ALL';
     let activeFilterTamano = 'ALL';
     let currentModule = null;
+    let activeReportChapter = 'financial';
     let isSidebarCollapsed = false;
     let currentChartType = 'bar';
     let municipalChartType = 'radar';
@@ -3518,6 +3587,8 @@
         updateSustainableModelView();
       } else if (activeView === 'module') {
         renderModuleView(currentModule);
+      } else if (activeView === 'report') {
+        renderReportView();
       }
     }
 
@@ -3592,9 +3663,15 @@
       document.getElementById('viewFinancialCompany').classList.add('hidden');
       document.getElementById('viewSustainableModel').classList.add('hidden');
       document.getElementById('viewModule').classList.add('hidden');
-      document.getElementById('resultsTableContainer').classList.toggle('hidden', view === 'sustainable-model');
+      document.getElementById('viewReport').classList.add('hidden');
+      document.getElementById('resultsTableContainer').classList.toggle('hidden', view === 'sustainable-model' || view === 'report');
 
-      if (view === 'regional') {
+      if (view === 'report') {
+        document.getElementById('nav-report').classList.add('bg-ceo-blue', 'text-white');
+        document.getElementById('nav-report').classList.remove('text-slate-600');
+        document.getElementById('viewReport').classList.remove('hidden');
+        renderReportView();
+      } else if (view === 'regional') {
         document.getElementById('nav-regional').classList.add('bg-ceo-blue', 'text-white');
         document.getElementById('nav-regional').classList.remove('text-slate-600');
         document.getElementById('viewRegional').classList.remove('hidden');
@@ -4834,6 +4911,360 @@
         `;
         tbody.appendChild(tr);
       });
+    }
+
+    function selectReportChapter(chapterId) {
+      activeReportChapter = chapterId;
+      renderReportView();
+    }
+
+    function formatReportNumber(value) {
+      return Number(value).toFixed(1).replace('.', ',');
+    }
+
+    function formatReportPercent(value, total) {
+      return total > 0 ? `${((value / total) * 100).toFixed(1).replace('.', ',')}%` : '0,0%';
+    }
+
+    function renderReportView() {
+      const reportCompanies = Object.keys(processedData.matrix).filter(companyPassesSidebarFilters);
+      const companyResults = reportCompanies.map(company => ({
+        company,
+        ...calculateCompanySustainability(company)
+      }));
+      const moduleAverages = {};
+      SUSTAINABILITY_MODULES.forEach(module => {
+        const total = companyResults.reduce((sum, result) => sum + result.moduleScores[module], 0);
+        moduleAverages[module] = companyResults.length > 0 ? total / companyResults.length : null;
+      });
+
+      const scores = companyResults.map(result => result.score).sort((a, b) => a - b);
+      const globalAverage = scores.length > 0 ? scores.reduce((sum, score) => sum + score, 0) / scores.length : null;
+      const median = scores.length > 0
+        ? (scores.length % 2 === 0
+          ? (scores[scores.length / 2 - 1] + scores[scores.length / 2]) / 2
+          : scores[Math.floor(scores.length / 2)])
+        : null;
+      const municipalities = new Set(reportCompanies
+        .map(company => processedData.matrix[company]?.['Municipio'])
+        .filter(municipality => municipality && !isInvalidAnswer(municipality)));
+      const reportQuestions = QUESTION_ORDER.filter(question =>
+        processedData.questions.includes(question) &&
+        REPORT_CHAPTERS.slice(0, 5).some(chapter => chapter.module === MODULE_MAPPING[question])
+      );
+      const moduleScores = SUSTAINABILITY_MODULES
+        .map(module => ({ module, score: moduleAverages[module] }))
+        .filter(item => item.score !== null);
+      const strongestModule = moduleScores.slice().sort((a, b) => b.score - a.score)[0];
+      const lowestModule = moduleScores.slice().sort((a, b) => a.score - b.score)[0];
+
+      document.getElementById('reportKpiCompanies').textContent = reportCompanies.length;
+      document.getElementById('reportKpiQuestions').textContent = reportQuestions.length;
+      document.getElementById('reportKpiMunicipalities').textContent = municipalities.size;
+      document.getElementById('reportKpiScore').textContent = globalAverage === null ? '—' : formatReportNumber(globalAverage);
+      document.getElementById('reportSummaryText').textContent = globalAverage === null
+        ? 'No hay empresas que coincidan con los filtros seleccionados.'
+        : `Promedio ponderado global: ${formatReportNumber(globalAverage)} / 100 · mediana: ${formatReportNumber(median)}. El eje con mayor resultado es ${strongestModule.module} (${formatReportNumber(strongestModule.score)}); la principal brecha se observa en ${lowestModule.module} (${formatReportNumber(lowestModule.score)}).`;
+
+      const moduleColors = ['bg-amber-500', 'bg-emerald-600', 'bg-sky-600', 'bg-blue-900'];
+      document.getElementById('reportScoreBars').innerHTML = SUSTAINABILITY_MODULES.map((module, index) => {
+        const score = moduleAverages[module];
+        const width = score === null ? 0 : Math.max(0, Math.min(100, score));
+        return `
+          <div>
+            <div class="flex items-start justify-between gap-3 text-xs mb-1.5">
+              <span class="font-semibold text-slate-700">${escapeHtml(module)}</span>
+              <span class="font-extrabold text-ceo-blue whitespace-nowrap">${score === null ? '—' : `${formatReportNumber(score)} / 100`}</span>
+            </div>
+            <div class="h-2.5 rounded-full bg-slate-100 overflow-hidden">
+              <div class="h-full rounded-full ${moduleColors[index]}" style="width:${width}%"></div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      document.getElementById('reportChapterNav').innerHTML = REPORT_CHAPTERS.map(chapter => {
+        const active = chapter.id === activeReportChapter;
+        return `
+          <button type="button" onclick="selectReportChapter('${chapter.id}')" aria-pressed="${active}" class="rounded-xl border px-3 py-3 text-left transition-all ${active ? 'bg-ceo-blue text-white border-ceo-blue shadow-sm' : 'bg-white text-slate-700 border-slate-200 hover:border-ceo-green hover:bg-emerald-50'}">
+            <span class="text-[10px] font-extrabold uppercase tracking-wider ${active ? 'text-emerald-300' : 'text-ceo-green'}">${chapter.number}</span>
+            <span class="block text-xs font-bold leading-snug mt-1">${escapeHtml(chapter.title)}</span>
+          </button>
+        `;
+      }).join('');
+
+      const categoryCounts = { TIGRILLO: 0, PUMA: 0, JAGUAR: 0 };
+      companyResults.forEach(result => { categoryCounts[result.level]++; });
+      const reportData = {
+        companyResults,
+        totalCompanies: reportCompanies.length,
+        moduleAverages,
+        categoryCounts,
+        pumaFullCount: companyResults.filter(result => result.pumaGateCount >= 4).length,
+        jaguarMandatoryCount: companyResults.filter(result => result.jaguarGates.mandatoryCount === 2).length,
+        jaguarComplementaryCount: companyResults.filter(result => result.jaguarGates.complementaryCount >= 5).length,
+        highScorePumaCount: companyResults.filter(result => result.score >= 80 && result.level === 'PUMA').length
+      };
+      const chapter = REPORT_CHAPTERS.find(item => item.id === activeReportChapter) || REPORT_CHAPTERS[0];
+      document.getElementById('reportChapterContent').innerHTML = renderReportChapter(chapter, reportData);
+      lucide.createIcons();
+    }
+
+    function getReportQuestionSummary(question) {
+      const isNumeric = NUMERIC_QUESTIONS.has(question);
+      const isMulti = MULTI_CHOICE_QUESTIONS.has(question);
+      const isTableOnly = TABLE_ONLY_QUESTIONS.has(question);
+      const counts = {};
+      const numericValues = [];
+      let totalEligible = 0;
+      let noDataCount = 0;
+      const validCompanies = new Set();
+
+      Object.keys(processedData.matrix).forEach(company => {
+        if (!companyPassesSidebarFilters(company)) return;
+        if (DEPENDENT_QUESTIONS[question]) {
+          const parentAnswer = processedData.matrix[company][DEPENDENT_QUESTIONS[question]] || '';
+          if (!parentAnswer.toLowerCase().includes('sí') && !parentAnswer.toLowerCase().includes('si')) return;
+        }
+
+        totalEligible++;
+        const rawAnswer = processedData.matrix[company][question] || 'Sin Respuesta';
+        if (isNumeric) {
+          if (isConfidentialOrNoData(rawAnswer)) {
+            noDataCount++;
+            return;
+          }
+          const value = parseNumericValue(rawAnswer);
+          if (value !== null && value > 0) {
+            numericValues.push(value);
+            validCompanies.add(company);
+          } else {
+            noDataCount++;
+          }
+          return;
+        }
+
+        const options = parseAnswersForQuestion(question, rawAnswer);
+        let hasValidAnswer = false;
+        options.forEach(option => {
+          if (isInvalidAnswer(option)) return;
+          counts[option] = (counts[option] || 0) + 1;
+          hasValidAnswer = true;
+        });
+        if (hasValidAnswer) validCompanies.add(company);
+      });
+
+      const openSummary = isTableOnly ? summarizeOpenResponses(question) : null;
+      return {
+        counts,
+        isNumeric,
+        isMulti,
+        isTableOnly,
+        totalEligible,
+        validTotal: openSummary ? openSummary.responseCount : validCompanies.size,
+        numericCount: numericValues.length,
+        noDataCount,
+        openSummary
+      };
+    }
+
+    function buildReportAnalysis(question, summary) {
+      if (summary.isNumeric) {
+        return summary.totalEligible > 0
+          ? `${summary.numericCount} de ${summary.totalEligible} empresas elegibles reportan un valor; ${summary.noDataCount} no tienen dato publicable. Se recomienda validar unidades y formatos antes de divulgar montos agregados.`
+          : 'No hay empresas elegibles con los filtros seleccionados.';
+      }
+
+      if (summary.isTableOnly) {
+        const topics = summary.openSummary.phrases.length
+          ? summary.openSummary.phrases
+          : summary.openSummary.keywords;
+        return topics.length
+          ? `En ${summary.openSummary.responseCount} respuestas abiertas se destacan estos temas: ${topics.join(', ')}. La síntesis resume recurrencias y no reemplaza la lectura de las respuestas individuales.`
+          : 'No hay respuestas abiertas suficientes para identificar temas recurrentes.';
+      }
+
+      const ranked = Object.entries(summary.counts).sort((a, b) => b[1] - a[1]);
+      if (!ranked.length || !summary.validTotal) return 'No hay datos válidos suficientes para realizar esta lectura.';
+      const topOptions = ranked.slice(0, 3).map(([label, count]) =>
+        `${label} (${count} empresas; ${formatReportPercent(count, summary.validTotal)})`
+      );
+      return summary.isMulti
+        ? `Las menciones más frecuentes son ${topOptions.join(', ')}. Al ser una selección múltiple, las opciones pueden coexistir y los porcentajes no deben sumarse como si fueran excluyentes.`
+        : `La respuesta más frecuente es ${topOptions[0]}. La distribución permite dimensionar su prevalencia frente al resto de respuestas registradas.`;
+    }
+
+    function renderReportBars(entries, denominator) {
+      if (!entries.length) return '<p class="text-xs text-slate-500">Sin datos para graficar en esta pregunta.</p>';
+      const maxCount = Math.max(...entries.map(entry => entry.count), 1);
+      const rows = entries.map(entry => {
+        const width = Math.max(0, Math.min(100, (entry.count / maxCount) * 100));
+        return `
+          <div class="grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-1 items-center">
+            <span class="text-xs font-medium text-slate-700 break-words">${escapeHtml(entry.label)}</span>
+            <span class="text-[11px] font-bold text-slate-600 whitespace-nowrap">${entry.count} · ${formatReportPercent(entry.count, denominator)}</span>
+            <div class="col-span-2 h-2 rounded-full bg-slate-100 overflow-hidden">
+              <div class="h-full rounded-full ${entry.color || 'bg-ceo-green'}" style="width:${width}%"></div>
+            </div>
+          </div>
+        `;
+      }).join('');
+      return `<div class="space-y-3">${rows}</div>`;
+    }
+
+    function renderReportQuestionCard(question, index) {
+      const summary = getReportQuestionSummary(question);
+      const sortedCounts = Object.entries(summary.counts)
+        .sort((a, b) => b[1] - a[1])
+        .map(([label, count]) => ({ label, count }));
+      let quickRead = '';
+      let chart = '';
+
+      if (summary.isNumeric) {
+        quickRead = `${summary.numericCount} con dato · ${summary.noDataCount} sin dato`;
+        chart = renderReportBars([
+          { label: 'Con dato numérico', count: summary.numericCount, color: 'bg-ceo-green' },
+          { label: 'Confidencial / sin dato', count: summary.noDataCount, color: 'bg-amber-500' }
+        ], summary.totalEligible);
+      } else if (summary.isTableOnly) {
+        quickRead = `${summary.validTotal} respuestas abiertas`;
+        const topics = summary.openSummary.phrases.length
+          ? summary.openSummary.phrases
+          : summary.openSummary.keywords;
+        chart = topics.length
+          ? `<div class="flex flex-wrap gap-2">${topics.map(topic => `<span class="rounded-full bg-emerald-50 border border-emerald-200 px-3 py-1.5 text-xs font-semibold text-emerald-800">${escapeHtml(topic)}</span>`).join('')}</div>`
+          : '<p class="text-xs text-slate-500">No se identificaron temas recurrentes.</p>';
+      } else {
+        const top = sortedCounts[0];
+        quickRead = top ? `${top.label} · ${formatReportPercent(top.count, summary.validTotal)}` : 'Sin respuestas válidas';
+        const visibleEntries = sortedCounts.slice(0, 8);
+        const remainingEntries = sortedCounts.slice(8);
+        chart = renderReportBars(visibleEntries, summary.validTotal);
+        if (remainingEntries.length) {
+          chart += `<details class="border-t border-slate-100 pt-3"><summary class="cursor-pointer text-xs font-semibold text-ceo-blue">Ver ${remainingEntries.length} opciones adicionales</summary><div class="mt-3">${renderReportBars(remainingEntries, summary.validTotal)}</div></details>`;
+        }
+      }
+
+      const typeLabel = summary.isNumeric ? 'Cobertura del dato' : summary.isTableOnly ? 'Respuesta abierta' : summary.isMulti ? 'Selección múltiple' : 'Selección única';
+      const parentNote = DEPENDENT_QUESTIONS[question]
+        ? `<p class="text-[11px] text-slate-500 mt-1">Muestra aplicable: empresas que respondieron afirmativamente a “${escapeHtml(DEPENDENT_QUESTIONS[question])}”.</p>`
+        : '';
+      const analysis = buildReportAnalysis(question, summary);
+
+      return `
+        <details ${index === 0 ? 'open' : ''} class="group glass-card rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <summary class="cursor-pointer list-none p-4 sm:p-5 flex items-center justify-between gap-3">
+            <div class="min-w-0">
+              <div class="flex flex-wrap items-center gap-2">
+                <h4 class="text-sm font-bold text-slate-800">${escapeHtml(question)}</h4>
+                <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600">${typeLabel}</span>
+              </div>
+              <p class="text-xs text-ceo-blue font-semibold mt-1.5 break-words">${escapeHtml(quickRead)}</p>
+            </div>
+            <i data-lucide="chevron-down" class="w-4 h-4 flex-shrink-0 text-slate-400 transition-transform group-open:rotate-180"></i>
+          </summary>
+          <div class="px-4 sm:px-5 pb-5 border-t border-slate-100">
+            ${parentNote}
+            <div class="grid lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] gap-5 pt-4">
+              <div>
+                <p class="text-[10px] font-bold uppercase tracking-wider text-ceo-green mb-3">${summary.isTableOnly ? 'Temas recurrentes' : summary.isNumeric ? 'Cobertura de respuestas' : 'Distribución de respuestas'}</p>
+                ${chart}
+                ${summary.isMulti ? '<p class="text-[10px] text-slate-500 mt-3">Los porcentajes se calculan sobre respuestas válidas; las opciones no son excluyentes.</p>' : ''}
+              </div>
+              <div class="rounded-xl bg-slate-50 border border-slate-200 p-4">
+                <p class="text-[10px] font-bold uppercase tracking-wider text-ceo-blue mb-2">Lectura del resultado</p>
+                <p class="text-xs leading-relaxed text-slate-700">${escapeHtml(analysis)}</p>
+                ${!summary.isNumeric && !summary.isTableOnly ? `<p class="text-[10px] text-slate-500 mt-3">Respuestas válidas: ${summary.validTotal} de ${summary.totalEligible} elegibles.</p>` : ''}
+              </div>
+            </div>
+          </div>
+        </details>
+      `;
+    }
+
+    function renderReportChapter(chapter, reportData) {
+      if (chapter.id === 'categories') return renderReportCategories(reportData);
+      const questions = QUESTION_ORDER.filter(question =>
+        processedData.questions.includes(question) && MODULE_MAPPING[question] === chapter.module
+      );
+      const score = reportData.moduleAverages[chapter.module];
+      const scoreSummary = score === undefined || score === null
+        ? ''
+        : `<div class="rounded-xl bg-white/10 border border-white/10 px-4 py-3"><p class="text-[10px] uppercase tracking-wider text-slate-300">Promedio del eje</p><p class="text-xl font-extrabold mt-1">${formatReportNumber(score)} <span class="text-xs font-semibold text-slate-300">/ 100</span></p></div>`;
+      const financialCaution = chapter.id === 'financial'
+        ? '<div class="rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs leading-relaxed text-amber-950"><strong>Precaución:</strong> las preguntas numéricas muestran cuántas empresas reportaron un dato, sin publicar valores monetarios consolidados mientras se validan formatos y unidades.</div>'
+        : '';
+      return `
+        <div class="space-y-4">
+          <header class="rounded-2xl bg-gradient-to-br from-slate-900 to-ceo-blue text-white p-5 sm:p-7 shadow-sm">
+            <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-emerald-300">Capítulo ${chapter.number} · ${questions.length} preguntas</p>
+            <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-4 mt-2">
+              <div>
+                <h3 class="text-xl sm:text-2xl font-extrabold">${escapeHtml(chapter.title)}</h3>
+                <p class="text-xs sm:text-sm text-slate-300 leading-relaxed mt-2 max-w-3xl">${escapeHtml(chapter.description)}</p>
+              </div>
+              ${scoreSummary}
+            </div>
+          </header>
+          ${financialCaution}
+          <div class="grid xl:grid-cols-2 gap-4 items-start">
+            ${questions.map((question, index) => renderReportQuestionCard(question, index)).join('')}
+          </div>
+          ${chapter.id === 'financial' ? '' : '<p class="text-[10px] text-slate-500 px-1">Las frecuencias describen respuestas agregadas y no representan una evaluación individual de empresas.</p>'}
+        </div>
+      `;
+    }
+
+    function renderReportCategories(reportData) {
+      const categories = [
+        { level: 'TIGRILLO', label: 'Tigrillo', color: 'border-rose-500', textColor: 'text-rose-700' },
+        { level: 'PUMA', label: 'Puma', color: 'border-amber-500', textColor: 'text-amber-700' },
+        { level: 'JAGUAR', label: 'Jaguar', color: 'border-ceo-blue', textColor: 'text-ceo-blue' }
+      ];
+      const categoryCards = categories.map(category => {
+        const count = reportData.categoryCounts[category.level];
+        return `
+          <article class="glass-card rounded-2xl p-5 sm:p-6 border-t-4 ${category.color} text-center">
+            <img src="${escapeHtml(CATEGORY_IMAGES[category.level])}" alt="" class="w-16 h-16 object-contain mx-auto">
+            <h4 class="text-sm font-extrabold uppercase tracking-wider mt-2 ${category.textColor}">${category.label}</h4>
+            <p class="text-3xl font-extrabold text-ceo-blue mt-3">${count}</p>
+            <p class="text-xs text-slate-500 mt-1">${formatReportPercent(count, reportData.totalCompanies)} de la muestra</p>
+            <div class="mt-4 h-2 rounded-full bg-slate-100 overflow-hidden">
+              <div class="h-full ${category.level === 'TIGRILLO' ? 'bg-rose-500' : category.level === 'PUMA' ? 'bg-amber-500' : 'bg-ceo-blue'}" style="width:${reportData.totalCompanies > 0 ? (count / reportData.totalCompanies) * 100 : 0}%"></div>
+            </div>
+          </article>
+        `;
+      }).join('');
+      return `
+        <div class="space-y-5">
+          <header class="rounded-2xl bg-gradient-to-br from-slate-900 to-ceo-blue text-white p-5 sm:p-7 shadow-sm">
+            <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-emerald-300">Capítulo ${chapterNumberForCategories()}</p>
+            <h3 class="text-xl sm:text-2xl font-extrabold mt-2">Resultados por categoría</h3>
+            <p class="text-xs sm:text-sm text-slate-300 leading-relaxed mt-2 max-w-3xl">Distribución consolidada de ${reportData.totalCompanies} empresas según el puntaje y los requisitos habilitantes del modelo CEO. No se muestran resultados individuales.</p>
+          </header>
+          <div class="grid md:grid-cols-3 gap-4">${categoryCards}</div>
+          <section class="glass-card rounded-2xl p-5 sm:p-6 shadow-sm">
+            <p class="text-xs font-bold uppercase tracking-wider text-ceo-green">Lectura de los habilitadores</p>
+            <h4 class="text-base font-bold text-slate-800 mt-1">El puntaje se interpreta junto con los requisitos de cada nivel</h4>
+            <div class="grid sm:grid-cols-2 xl:grid-cols-4 gap-3 mt-4">
+              <div class="rounded-xl bg-slate-50 border border-slate-200 p-4"><p class="text-xs font-bold text-slate-800">Puma · 4 habilitadores</p><p class="text-2xl font-extrabold text-ceo-blue mt-2">${reportData.pumaFullCount}</p><p class="text-[11px] text-slate-500">empresas cumplen los cuatro requisitos Puma.</p></div>
+              <div class="rounded-xl bg-slate-50 border border-slate-200 p-4"><p class="text-xs font-bold text-slate-800">Jaguar · condiciones obligatorias</p><p class="text-2xl font-extrabold text-ceo-blue mt-2">${reportData.jaguarMandatoryCount}</p><p class="text-[11px] text-slate-500">empresas cumplen 2 de 2 condiciones.</p></div>
+              <div class="rounded-xl bg-slate-50 border border-slate-200 p-4"><p class="text-xs font-bold text-slate-800">Jaguar · complementarios</p><p class="text-2xl font-extrabold text-ceo-blue mt-2">${reportData.jaguarComplementaryCount}</p><p class="text-[11px] text-slate-500">empresas cumplen al menos 5 de 8 requisitos.</p></div>
+              <div class="rounded-xl bg-slate-50 border border-slate-200 p-4"><p class="text-xs font-bold text-slate-800">Puntaje ≥ 80 en Puma</p><p class="text-2xl font-extrabold text-ceo-blue mt-2">${reportData.highScorePumaCount}</p><p class="text-[11px] text-slate-500">empresas no alcanzan los habilitadores Jaguar.</p></div>
+            </div>
+            <div class="grid md:grid-cols-3 gap-3 mt-5 text-xs leading-relaxed">
+              <div class="rounded-xl border-l-4 border-rose-500 bg-rose-50 p-4"><strong class="text-rose-800">Tigrillo</strong><p class="text-slate-700 mt-1">Puntaje inferior a 50.</p></div>
+              <div class="rounded-xl border-l-4 border-amber-500 bg-amber-50 p-4"><strong class="text-amber-800">Puma</strong><p class="text-slate-700 mt-1">Puntaje desde 50 con los habilitadores requeridos; un puntaje de 80 o más puede ubicar la empresa en Puma si no cumple los requisitos Jaguar.</p></div>
+              <div class="rounded-xl border-l-4 border-ceo-blue bg-blue-50 p-4"><strong class="text-ceo-blue">Jaguar</strong><p class="text-slate-700 mt-1">Puntaje de 80 o más, las dos condiciones obligatorias y al menos cinco de ocho complementarias.</p></div>
+            </div>
+            <p class="text-[10px] text-slate-500 mt-4">La metodología escrita deja sin definir el intervalo entre 44,9 y 50; se recomienda armonizar la documentación con la regla aplicada por el dashboard.</p>
+          </section>
+        </div>
+      `;
+    }
+
+    function chapterNumberForCategories() {
+      return REPORT_CHAPTERS.find(chapter => chapter.id === 'categories')?.number || '06';
     }
 
     // --- 4. MÓDULOS TEMÁTICOS ---
